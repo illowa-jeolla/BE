@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: travel
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:travel}
+    username: ${POSTGRES_USER:travel}
+    password: ${POSTGRES_PASSWORD:travel}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
