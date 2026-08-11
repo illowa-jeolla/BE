@@ -30,6 +30,11 @@ out/
 SESSION_CONTEXT.md
 PRODUCTION_SECURITY_TODO.md
 
+### Local environment configuration ###
+.env
+.env.*
+!.env.example
+
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/

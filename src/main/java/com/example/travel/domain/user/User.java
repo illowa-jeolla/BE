@@ -1,9 +1,19 @@
 package com.example.travel.domain.user;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
+
+import java.time.OffsetDateTime;
 
 @Getter
 @Entity
@@ -14,31 +24,54 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String email;
-
-    @Column(nullable = false)
-    private String password;
-
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 50)
     private String nickname;
+
+    @Column(name = "avatar_url", columnDefinition = "TEXT")
+    private String avatarUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
 
-    @Column(name = "is_deleted", nullable = false)
-    private boolean deleted;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserStatus status;
 
-    private User(String email, String password, String nickname) {
-        this.email = email;
-        this.password = password;
+    @Column(name = "last_login_at")
+    private OffsetDateTime lastLoginAt;
+
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @ColumnDefault("CURRENT_TIMESTAMP")
+    private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @ColumnDefault("CURRENT_TIMESTAMP")
+    private OffsetDateTime updatedAt;
+
+    @Column(name = "withdrawn_at")
+    private OffsetDateTime withdrawnAt;
+
+    private User(String nickname, String avatarUrl) {
         this.nickname = nickname;
+        this.avatarUrl = avatarUrl;
         this.role = Role.USER;
-        this.deleted = false;
+        this.status = UserStatus.ACTIVE;
     }
 
-    public static User create(String email, String encodedPassword, String nickname) {
-        return new User(email, encodedPassword, nickname);
+    public static User create(String nickname) {
+        return new User(nickname, null);
+    }
+
+    public static User createSocial(String nickname, String avatarUrl) {
+        return new User(nickname, avatarUrl);
+    }
+
+    public boolean isActive() {
+        return status == UserStatus.ACTIVE;
+    }
+
+    public void recordLogin() {
+        this.lastLoginAt = OffsetDateTime.now();
     }
 }

@@ -3,8 +3,11 @@ package com.example.travel.domain.auth;
 import com.example.travel.domain.auth.dto.AuthTokenResponse;
 import com.example.travel.domain.auth.dto.LoginRequest;
 import com.example.travel.domain.auth.dto.SignupRequest;
+import com.example.travel.domain.user.LocalCredential;
+import com.example.travel.domain.user.LocalCredentialRepository;
 import com.example.travel.domain.user.User;
 import com.example.travel.domain.user.UserRepository;
+import com.example.travel.domain.user.UserStatus;
 import com.example.travel.global.auth.JwtProvider;
 import com.example.travel.global.auth.RefreshTokenCookieProvider;
 import com.example.travel.global.auth.RefreshTokenService;
@@ -20,16 +23,22 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthService {
     private final UserRepository userRepository;
+    private final LocalCredentialRepository credentialRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserSignupWriter userSignupWriter;
     private final JwtProvider jwtProvider;
     private final RefreshTokenService refreshTokenService;
     private final RefreshTokenCookieProvider cookieProvider;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                       UserSignupWriter userSignupWriter, JwtProvider jwtProvider,
-                       RefreshTokenService refreshTokenService, RefreshTokenCookieProvider cookieProvider) {
+    public AuthService(UserRepository userRepository,
+                       LocalCredentialRepository credentialRepository,
+                       PasswordEncoder passwordEncoder,
+                       UserSignupWriter userSignupWriter,
+                       JwtProvider jwtProvider,
+                       RefreshTokenService refreshTokenService,
+                       RefreshTokenCookieProvider cookieProvider) {
         this.userRepository = userRepository;
+        this.credentialRepository = credentialRepository;
         this.passwordEncoder = passwordEncoder;
         this.userSignupWriter = userSignupWriter;
         this.jwtProvider = jwtProvider;
@@ -38,36 +47,40 @@ public class AuthService {
     }
 
     public AuthTokenResponse signup(SignupRequest request, HttpServletResponse response) {
-        if (userRepository.existsByEmail(request.email())) {
-            throw duplicateEmail();
-        }
+        if (credentialRepository.existsByEmail(request.email())) throw duplicateEmail();
 
         User user;
         try {
-            user = userSignupWriter.save(User.create(request.email(),
-                    passwordEncoder.encode(request.password()), request.nickname()));
+            User newUser = User.create(request.nickname());
+            newUser.recordLogin();
+            user = userSignupWriter.save(
+                    newUser,
+                    request.email(),
+                    passwordEncoder.encode(request.password()));
         } catch (DataIntegrityViolationException exception) {
-            if (userRepository.existsByEmail(request.email())) {
-                throw duplicateEmail();
-            }
+            if (credentialRepository.existsByEmail(request.email())) throw duplicateEmail();
             throw exception;
         }
         return issueTokens(user, response);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthTokenResponse login(LoginRequest request, HttpServletResponse response) {
-        User user = userRepository.findByEmailAndDeletedFalse(request.email())
+        LocalCredential credential = credentialRepository
+                .findByEmailAndUserStatus(request.email(), UserStatus.ACTIVE)
                 .orElseThrow(this::invalidCredentials);
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) throw invalidCredentials();
-        return issueTokens(user, response);
+        if (!passwordEncoder.matches(request.password(), credential.getPasswordHash())) {
+            throw invalidCredentials();
+        }
+        credential.getUser().recordLogin();
+        return issueTokens(credential.getUser(), response);
     }
 
     @Transactional(readOnly = true)
     public AuthTokenResponse refresh(String refreshToken, HttpServletResponse response) {
         if (!jwtProvider.isValidRefreshToken(refreshToken)) throw invalidToken();
         Long userId = jwtProvider.userId(refreshToken);
-        User user = userRepository.findByIdAndDeletedFalse(userId).orElseThrow(this::invalidToken);
+        User user = activeUser(userId);
         String newRefreshToken = jwtProvider.createRefreshToken(userId);
         if (!refreshTokenService.rotate(userId, refreshToken, newRefreshToken)) throw invalidToken();
 
@@ -79,6 +92,16 @@ public class AuthService {
     public void logout(Long userId, HttpServletResponse response) {
         refreshTokenService.delete(userId);
         response.addHeader(HttpHeaders.SET_COOKIE, cookieProvider.expire().toString());
+    }
+
+    @Transactional(readOnly = true)
+    public AuthTokenResponse issueTokens(Long userId, HttpServletResponse response) {
+        return issueTokens(activeUser(userId), response);
+    }
+
+    private User activeUser(Long userId) {
+        return userRepository.findByIdAndStatus(userId, UserStatus.ACTIVE)
+                .orElseThrow(this::invalidToken);
     }
 
     private AuthTokenResponse issueTokens(User user, HttpServletResponse response) {
@@ -100,6 +123,7 @@ public class AuthService {
     }
 
     private ApiException invalidToken() {
-        return new ApiException(HttpStatus.UNAUTHORIZED, "AUTH_401_INVALID_TOKEN", "유효하지 않은 토큰입니다.");
+        return new ApiException(HttpStatus.UNAUTHORIZED, "AUTH_401_INVALID_TOKEN",
+                "유효하지 않은 토큰입니다.");
     }
 }
