@@ -9,3 +9,15 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+jwt:
+  # 운영 환경에서는 반드시 충분히 긴 무작위 값으로 교체하세요.
+  secret-key: ${JWT_SECRET:local-development-secret-key-must-be-at-least-32-bytes}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:1209600000}
+  cookie-secure: ${JWT_COOKIE_SECURE:false}
