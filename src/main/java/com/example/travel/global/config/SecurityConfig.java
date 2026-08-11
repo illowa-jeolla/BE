@@ -2,7 +2,9 @@ package com.example.travel.global.config;
 
 import com.example.travel.global.auth.JwtAuthenticationFilter;
 import com.example.travel.global.auth.JwtProperties;
+import com.example.travel.domain.auth.kakao.KakaoProperties;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.DispatcherType;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import java.nio.charset.StandardCharsets;
 
 @Configuration
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class})
 public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter filter) throws Exception {
@@ -29,8 +31,10 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login",
-                                "/api/v1/auth/refresh", "/api/v1/auth/csrf").permitAll()
+                                "/api/v1/auth/refresh", "/api/v1/auth/csrf",
+                                "/api/v1/auth/kakao/**", "/error").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, exception) ->
