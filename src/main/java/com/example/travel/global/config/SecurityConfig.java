@@ -22,12 +22,15 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter filter) throws Exception {
         return http
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf
+                        .spa()
+                        .requireCsrfProtectionMatcher(SecurityConfig::isRefreshRequest))
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
+                        .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login",
+                                "/api/v1/auth/refresh", "/api/v1/auth/csrf").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, exception) ->
@@ -42,6 +45,11 @@ public class SecurityConfig {
 
     @Bean
     PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+
+    private static boolean isRefreshRequest(jakarta.servlet.http.HttpServletRequest request) {
+        return "POST".equals(request.getMethod())
+                && (request.getContextPath() + "/api/v1/auth/refresh").equals(request.getRequestURI());
+    }
 
     private static void writeError(HttpServletResponse response, int status,
                                    String code, String message) throws java.io.IOException {

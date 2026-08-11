@@ -1,6 +1,7 @@
 package com.example.travel.domain.auth;
 
 import com.example.travel.domain.auth.dto.AuthTokenResponse;
+import com.example.travel.domain.auth.dto.CsrfTokenResponse;
 import com.example.travel.domain.auth.dto.LoginRequest;
 import com.example.travel.domain.auth.dto.SignupRequest;
 import com.example.travel.global.common.ApiResponse;
@@ -8,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,6 +29,14 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthTokenResponse>> login(
             @Valid @RequestBody LoginRequest request, HttpServletResponse response) {
         return ResponseEntity.ok(ApiResponse.success(authService.login(request, response)));
+    }
+
+    @GetMapping("/csrf")
+    public ResponseEntity<ApiResponse<CsrfTokenResponse>> csrf(
+            @RequestAttribute("_csrf") CsrfToken csrfToken) {
+        csrfToken.getToken();
+        return ResponseEntity.ok(ApiResponse.success(
+                new CsrfTokenResponse("XSRF-TOKEN", csrfToken.getHeaderName())));
     }
 
     @PostMapping("/refresh")
