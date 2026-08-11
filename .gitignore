@@ -26,6 +26,10 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
+### Local Codex documentation ###
+SESSION_CONTEXT.md
+PRODUCTION_SECURITY_TODO.md
+
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/

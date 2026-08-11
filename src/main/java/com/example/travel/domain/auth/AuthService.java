@@ -10,6 +10,7 @@ import com.example.travel.global.auth.RefreshTokenCookieProvider;
 import com.example.travel.global.auth.RefreshTokenService;
 import com.example.travel.global.common.ApiException;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,26 +21,37 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserSignupWriter userSignupWriter;
     private final JwtProvider jwtProvider;
     private final RefreshTokenService refreshTokenService;
     private final RefreshTokenCookieProvider cookieProvider;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtProvider jwtProvider,
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                       UserSignupWriter userSignupWriter, JwtProvider jwtProvider,
                        RefreshTokenService refreshTokenService, RefreshTokenCookieProvider cookieProvider) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userSignupWriter = userSignupWriter;
         this.jwtProvider = jwtProvider;
         this.refreshTokenService = refreshTokenService;
         this.cookieProvider = cookieProvider;
     }
 
-    @Transactional
     public AuthTokenResponse signup(SignupRequest request, HttpServletResponse response) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new ApiException(HttpStatus.CONFLICT, "AUTH_409_DUPLICATE_EMAIL", "이미 사용 중인 이메일입니다.");
+            throw duplicateEmail();
         }
-        User user = userRepository.save(User.create(request.email(),
-                passwordEncoder.encode(request.password()), request.nickname()));
+
+        User user;
+        try {
+            user = userSignupWriter.save(User.create(request.email(),
+                    passwordEncoder.encode(request.password()), request.nickname()));
+        } catch (DataIntegrityViolationException exception) {
+            if (userRepository.existsByEmail(request.email())) {
+                throw duplicateEmail();
+            }
+            throw exception;
+        }
         return issueTokens(user, response);
     }
 
@@ -55,9 +67,13 @@ public class AuthService {
     public AuthTokenResponse refresh(String refreshToken, HttpServletResponse response) {
         if (!jwtProvider.isValidRefreshToken(refreshToken)) throw invalidToken();
         Long userId = jwtProvider.userId(refreshToken);
-        if (!refreshTokenService.matches(userId, refreshToken)) throw invalidToken();
         User user = userRepository.findByIdAndDeletedFalse(userId).orElseThrow(this::invalidToken);
-        return issueTokens(user, response);
+        String newRefreshToken = jwtProvider.createRefreshToken(userId);
+        if (!refreshTokenService.rotate(userId, refreshToken, newRefreshToken)) throw invalidToken();
+
+        String accessToken = jwtProvider.createAccessToken(userId, user.getRole().name());
+        response.addHeader(HttpHeaders.SET_COOKIE, cookieProvider.create(newRefreshToken).toString());
+        return AuthTokenResponse.bearer(accessToken);
     }
 
     public void logout(Long userId, HttpServletResponse response) {
@@ -76,6 +92,11 @@ public class AuthService {
     private ApiException invalidCredentials() {
         return new ApiException(HttpStatus.UNAUTHORIZED, "AUTH_401_INVALID_CREDENTIALS",
                 "이메일 또는 비밀번호가 올바르지 않습니다.");
+    }
+
+    private ApiException duplicateEmail() {
+        return new ApiException(HttpStatus.CONFLICT, "AUTH_409_DUPLICATE_EMAIL",
+                "이미 사용 중인 이메일입니다.");
     }
 
     private ApiException invalidToken() {
