@@ -4,13 +4,13 @@ import com.example.travel.domain.auth.dto.AuthTokenResponse;
 import com.example.travel.domain.auth.google.client.GoogleApiClient;
 import com.example.travel.domain.auth.google.config.GoogleProperties;
 import com.example.travel.domain.auth.google.dto.GoogleUserInfo;
+import com.example.travel.domain.auth.google.exception.GoogleErrorCode;
+import com.example.travel.domain.auth.google.exception.GoogleException;
 import com.example.travel.domain.auth.service.AuthService;
 import com.example.travel.domain.user.enums.AuthProvider;
 import com.example.travel.domain.user.repository.SocialAccountRepository;
-import com.example.travel.global.common.ApiException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -51,12 +51,10 @@ public class GoogleAuthService {
                                       HttpServletResponse response) {
         stateService.consume(state, cookieState, response);
         if (error != null) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "GOOGLE_401_LOGIN_CANCELLED",
-                    "Google 로그인이 취소되었습니다.");
+            throw new GoogleException(GoogleErrorCode.LOGIN_CANCELLED);
         }
         if (code == null || code.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "GOOGLE_400_MISSING_CODE",
-                    "Google 인가 코드가 없습니다.");
+            throw new GoogleException(GoogleErrorCode.MISSING_CODE);
         }
 
         String idToken = googleApiClient.exchangeCode(code);

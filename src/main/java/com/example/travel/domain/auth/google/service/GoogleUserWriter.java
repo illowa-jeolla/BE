@@ -1,13 +1,13 @@
 package com.example.travel.domain.auth.google.service;
 
 import com.example.travel.domain.auth.google.dto.GoogleUserInfo;
+import com.example.travel.domain.auth.google.exception.GoogleErrorCode;
+import com.example.travel.domain.auth.google.exception.GoogleException;
 import com.example.travel.domain.user.entity.SocialAccount;
 import com.example.travel.domain.user.entity.User;
 import com.example.travel.domain.user.enums.AuthProvider;
 import com.example.travel.domain.user.repository.SocialAccountRepository;
 import com.example.travel.domain.user.repository.UserRepository;
-import com.example.travel.global.common.ApiException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,13 +25,11 @@ public class GoogleUserWriter {
     @Transactional
     public Long findOrCreate(GoogleUserInfo googleUser) {
         if (googleUser.subject() == null || googleUser.subject().isBlank()) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "GOOGLE_401_INVALID_ID_TOKEN",
-                    "유효하지 않은 Google ID Token입니다.");
+            throw new GoogleException(GoogleErrorCode.INVALID_ID_TOKEN);
         }
         String email = googleUser.verifiedEmail();
         if (email == null) {
-            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "GOOGLE_422_EMAIL_REQUIRED",
-                    "Google 계정의 인증된 이메일이 필요합니다.");
+            throw new GoogleException(GoogleErrorCode.EMAIL_REQUIRED);
         }
 
         return socialAccountRepository
