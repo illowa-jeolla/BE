@@ -3,6 +3,8 @@ package com.example.travel.domain.auth.service;
 import com.example.travel.domain.auth.dto.AuthTokenResponse;
 import com.example.travel.domain.auth.dto.LoginRequest;
 import com.example.travel.domain.auth.dto.SignupRequest;
+import com.example.travel.domain.auth.exception.AuthErrorCode;
+import com.example.travel.domain.auth.exception.AuthException;
 import com.example.travel.domain.user.entity.LocalCredential;
 import com.example.travel.domain.user.repository.LocalCredentialRepository;
 import com.example.travel.domain.user.entity.User;
@@ -11,11 +13,9 @@ import com.example.travel.domain.user.enums.UserStatus;
 import com.example.travel.global.auth.JwtProvider;
 import com.example.travel.global.auth.RefreshTokenCookieProvider;
 import com.example.travel.global.auth.RefreshTokenService;
-import com.example.travel.global.common.ApiException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -112,18 +112,15 @@ public class AuthService {
         return AuthTokenResponse.bearer(accessToken);
     }
 
-    private ApiException invalidCredentials() {
-        return new ApiException(HttpStatus.UNAUTHORIZED, "AUTH_401_INVALID_CREDENTIALS",
-                "이메일 또는 비밀번호가 올바르지 않습니다.");
+    private AuthException invalidCredentials() {
+        return new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
     }
 
-    private ApiException duplicateEmail() {
-        return new ApiException(HttpStatus.CONFLICT, "AUTH_409_DUPLICATE_EMAIL",
-                "이미 사용 중인 이메일입니다.");
+    private AuthException duplicateEmail() {
+        return new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
     }
 
-    private ApiException invalidToken() {
-        return new ApiException(HttpStatus.UNAUTHORIZED, "AUTH_401_INVALID_TOKEN",
-                "유효하지 않은 토큰입니다.");
+    private AuthException invalidToken() {
+        return new AuthException(AuthErrorCode.INVALID_TOKEN);
     }
 }

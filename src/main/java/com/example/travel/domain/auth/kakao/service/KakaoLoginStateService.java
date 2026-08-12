@@ -1,10 +1,10 @@
 package com.example.travel.domain.auth.kakao.service;
 
 import com.example.travel.global.auth.JwtProperties;
-import com.example.travel.global.common.ApiException;
+import com.example.travel.domain.auth.kakao.exception.KakaoErrorCode;
+import com.example.travel.domain.auth.kakao.exception.KakaoException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -36,8 +36,7 @@ public class KakaoLoginStateService {
     public void consume(String state, String cookieState, HttpServletResponse response) {
         if (state == null || !state.equals(cookieState)
                 || redisTemplate.opsForValue().getAndDelete(PREFIX + state) == null) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "KAKAO_401_INVALID_STATE",
-                    "유효하지 않은 카카오 로그인 요청입니다.");
+            throw new KakaoException(KakaoErrorCode.INVALID_STATE);
         }
         response.addHeader(HttpHeaders.SET_COOKIE, cookie("", Duration.ZERO).toString());
     }

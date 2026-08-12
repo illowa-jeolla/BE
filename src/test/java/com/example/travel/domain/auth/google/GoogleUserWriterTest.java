@@ -9,7 +9,7 @@ import com.example.travel.domain.user.enums.AuthProvider;
 import com.example.travel.domain.user.repository.LocalCredentialRepository;
 import com.example.travel.domain.user.repository.SocialAccountRepository;
 import com.example.travel.domain.user.repository.UserRepository;
-import com.example.travel.global.common.ApiException;
+import com.example.travel.domain.auth.google.exception.GoogleException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -82,7 +82,7 @@ class GoogleUserWriterTest {
                 "google-subject", "user@example.com", false, "사용자", null);
 
         assertThatThrownBy(() -> userWriter.findOrCreate(googleUser))
-                .isInstanceOfSatisfying(ApiException.class, exception ->
+                .isInstanceOfSatisfying(GoogleException.class, exception ->
                         assertThat(exception.getCode()).isEqualTo("GOOGLE_422_EMAIL_REQUIRED"));
     }
 }

@@ -9,7 +9,7 @@ import com.example.travel.domain.user.repository.LocalCredentialRepository;
 import com.example.travel.domain.user.entity.SocialAccount;
 import com.example.travel.domain.user.entity.User;
 import com.example.travel.domain.user.repository.UserRepository;
-import com.example.travel.global.common.ApiException;
+import com.example.travel.domain.auth.kakao.exception.KakaoException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -84,7 +84,7 @@ class KakaoUserWriterTest {
                 true, false, true, false, "user@example.com", null));
 
         assertThatThrownBy(() -> userWriter.findOrCreate(kakaoUser))
-                .isInstanceOfSatisfying(ApiException.class, exception ->
+                .isInstanceOfSatisfying(KakaoException.class, exception ->
                         assertThat(exception.getCode()).isEqualTo("KAKAO_422_EMAIL_REQUIRED"));
     }
 

@@ -3,8 +3,8 @@ package com.example.travel.domain.auth.kakao.client;
 import com.example.travel.domain.auth.kakao.config.KakaoProperties;
 import com.example.travel.domain.auth.kakao.dto.KakaoTokenResponse;
 import com.example.travel.domain.auth.kakao.dto.KakaoUserResponse;
-import com.example.travel.global.common.ApiException;
-import org.springframework.http.HttpStatus;
+import com.example.travel.domain.auth.kakao.exception.KakaoErrorCode;
+import com.example.travel.domain.auth.kakao.exception.KakaoException;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -39,7 +39,7 @@ public class KakaoApiClient {
             if (token == null || token.accessToken() == null) throw kakaoUnavailable();
             return token;
         } catch (RestClientException exception) {
-            throw kakaoUnavailable();
+            throw kakaoUnavailable(exception);
         }
     }
 
@@ -59,12 +59,15 @@ public class KakaoApiClient {
             if (user == null || user.id() == null) throw kakaoUnavailable();
             return user;
         } catch (RestClientException exception) {
-            throw kakaoUnavailable();
+            throw kakaoUnavailable(exception);
         }
     }
 
-    private ApiException kakaoUnavailable() {
-        return new ApiException(HttpStatus.BAD_GATEWAY, "KAKAO_502_API_ERROR",
-                "카카오 로그인 처리 중 오류가 발생했습니다.");
+    private KakaoException kakaoUnavailable() {
+        return new KakaoException(KakaoErrorCode.API_ERROR);
+    }
+
+    private KakaoException kakaoUnavailable(Throwable cause) {
+        return new KakaoException(KakaoErrorCode.API_ERROR, cause);
     }
 }

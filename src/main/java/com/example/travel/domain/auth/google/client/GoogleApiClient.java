@@ -3,7 +3,8 @@ package com.example.travel.domain.auth.google.client;
 import com.example.travel.domain.auth.google.config.GoogleProperties;
 import com.example.travel.domain.auth.google.dto.GoogleTokenResponse;
 import com.example.travel.domain.auth.google.dto.GoogleUserInfo;
-import com.example.travel.global.common.ApiException;
+import com.example.travel.domain.auth.google.exception.GoogleErrorCode;
+import com.example.travel.domain.auth.google.exception.GoogleException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.googleapis.auth.oauth2.GooglePublicKeysManager;
@@ -13,7 +14,6 @@ import com.google.api.client.json.gson.GsonFactory;
 import org.apache.http.client.config.RequestConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -151,19 +151,16 @@ public class GoogleApiClient {
         }
     }
 
-    private ApiException invalidIdToken(Throwable cause) {
-        return new ApiException(HttpStatus.UNAUTHORIZED, "GOOGLE_401_INVALID_ID_TOKEN",
-                "유효하지 않은 Google ID Token입니다.", cause);
+    private GoogleException invalidIdToken(Throwable cause) {
+        return new GoogleException(GoogleErrorCode.INVALID_ID_TOKEN, cause);
     }
 
-    private ApiException googleUnavailable() {
-        return new ApiException(HttpStatus.BAD_GATEWAY, "GOOGLE_502_API_ERROR",
-                "Google 로그인 처리 중 오류가 발생했습니다.");
+    private GoogleException googleUnavailable() {
+        return new GoogleException(GoogleErrorCode.API_ERROR);
     }
 
-    private ApiException googleUnavailable(Throwable cause) {
-        return new ApiException(HttpStatus.BAD_GATEWAY, "GOOGLE_502_API_ERROR",
-                "Google 로그인 처리 중 오류가 발생했습니다.", cause);
+    private GoogleException googleUnavailable(Throwable cause) {
+        return new GoogleException(GoogleErrorCode.API_ERROR, cause);
     }
 
     private record GoogleErrorResponse(String error) {}

@@ -12,7 +12,7 @@ import com.example.travel.domain.user.enums.UserStatus;
 import com.example.travel.global.auth.JwtProvider;
 import com.example.travel.global.auth.RefreshTokenCookieProvider;
 import com.example.travel.global.auth.RefreshTokenService;
-import com.example.travel.global.common.ApiException;
+import com.example.travel.domain.auth.exception.AuthException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -98,7 +98,7 @@ class AuthServiceTest {
         when(refreshTokenService.rotate(7L, currentToken, newToken)).thenReturn(false);
 
         assertThatThrownBy(() -> authService.refresh(currentToken, response))
-                .isInstanceOfSatisfying(ApiException.class, exception ->
+                .isInstanceOfSatisfying(AuthException.class, exception ->
                         assertThat(exception.getCode()).isEqualTo("AUTH_401_INVALID_TOKEN"));
         verify(jwtProvider, never()).createAccessToken(any(), any());
         verify(cookieProvider, never()).create(any());
@@ -113,7 +113,7 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.login(
                 new LoginRequest("user@example.com", "password123"),
                 mock(HttpServletResponse.class)))
-                .isInstanceOfSatisfying(ApiException.class, exception ->
+                .isInstanceOfSatisfying(AuthException.class, exception ->
                         assertThat(exception.getCode()).isEqualTo("AUTH_401_INVALID_CREDENTIALS"));
         verify(passwordEncoder, never()).matches(any(), any());
     }
@@ -131,12 +131,12 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.login(
                 new LoginRequest("user@example.com", "password123"),
                 mock(HttpServletResponse.class)))
-                .isInstanceOf(ApiException.class);
+                .isInstanceOf(AuthException.class);
     }
 
     private void assertDuplicateEmail(ThrowingCall call) {
         assertThatThrownBy(call::invoke)
-                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                .isInstanceOfSatisfying(AuthException.class, exception -> {
                     assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT);
                     assertThat(exception.getCode()).isEqualTo("AUTH_409_DUPLICATE_EMAIL");
                 });

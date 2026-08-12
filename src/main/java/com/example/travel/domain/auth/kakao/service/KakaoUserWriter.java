@@ -1,13 +1,13 @@
 package com.example.travel.domain.auth.kakao.service;
 
 import com.example.travel.domain.auth.kakao.dto.KakaoUserResponse;
+import com.example.travel.domain.auth.kakao.exception.KakaoErrorCode;
+import com.example.travel.domain.auth.kakao.exception.KakaoException;
 import com.example.travel.domain.user.enums.AuthProvider;
 import com.example.travel.domain.user.entity.SocialAccount;
 import com.example.travel.domain.user.repository.SocialAccountRepository;
 import com.example.travel.domain.user.entity.User;
 import com.example.travel.domain.user.repository.UserRepository;
-import com.example.travel.global.common.ApiException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,8 +26,7 @@ public class KakaoUserWriter {
     public Long findOrCreate(KakaoUserResponse kakaoUser) {
         String providerUserId = kakaoUser.id().toString();
         String email = kakaoUser.verifiedEmail().orElseThrow(() ->
-                new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "KAKAO_422_EMAIL_REQUIRED",
-                        "카카오 계정의 인증된 이메일 제공 동의가 필요합니다."));
+                new KakaoException(KakaoErrorCode.EMAIL_REQUIRED));
 
         return socialAccountRepository
                 .findByProviderAndProviderUserId(AuthProvider.KAKAO, providerUserId)

@@ -5,12 +5,12 @@ import com.example.travel.domain.auth.dto.AuthTokenResponse;
 import com.example.travel.domain.auth.kakao.config.KakaoProperties;
 import com.example.travel.domain.auth.kakao.client.KakaoApiClient;
 import com.example.travel.domain.auth.kakao.dto.KakaoUserResponse;
+import com.example.travel.domain.auth.kakao.exception.KakaoErrorCode;
+import com.example.travel.domain.auth.kakao.exception.KakaoException;
 import com.example.travel.domain.user.enums.AuthProvider;
 import com.example.travel.domain.user.repository.SocialAccountRepository;
-import com.example.travel.global.common.ApiException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -50,12 +50,10 @@ public class KakaoAuthService {
                                       HttpServletResponse response) {
         stateService.consume(state, cookieState, response);
         if (error != null) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "KAKAO_401_LOGIN_CANCELLED",
-                    "카카오 로그인이 취소되었습니다.");
+            throw new KakaoException(KakaoErrorCode.LOGIN_CANCELLED);
         }
         if (code == null || code.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "KAKAO_400_MISSING_CODE",
-                    "카카오 인가 코드가 없습니다.");
+            throw new KakaoException(KakaoErrorCode.MISSING_CODE);
         }
 
         String kakaoAccessToken = kakaoApiClient.exchangeCode(code).accessToken();
