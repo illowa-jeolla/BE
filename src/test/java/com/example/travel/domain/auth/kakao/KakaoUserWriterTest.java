@@ -1,13 +1,14 @@
 package com.example.travel.domain.auth.kakao;
 
 import com.example.travel.domain.auth.kakao.dto.KakaoUserResponse;
-import com.example.travel.domain.user.SocialAccountRepository;
-import com.example.travel.domain.user.AuthProvider;
-import com.example.travel.domain.user.LocalCredential;
-import com.example.travel.domain.user.LocalCredentialRepository;
-import com.example.travel.domain.user.SocialAccount;
-import com.example.travel.domain.user.User;
-import com.example.travel.domain.user.UserRepository;
+import com.example.travel.domain.auth.kakao.service.KakaoUserWriter;
+import com.example.travel.domain.user.repository.SocialAccountRepository;
+import com.example.travel.domain.user.enums.AuthProvider;
+import com.example.travel.domain.user.entity.LocalCredential;
+import com.example.travel.domain.user.repository.LocalCredentialRepository;
+import com.example.travel.domain.user.entity.SocialAccount;
+import com.example.travel.domain.user.entity.User;
+import com.example.travel.domain.user.repository.UserRepository;
 import com.example.travel.global.common.ApiException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
