@@ -2,6 +2,7 @@ package com.example.travel.domain.user.entity;
 
 import com.example.travel.domain.user.enums.Role;
 import com.example.travel.domain.user.enums.UserStatus;
+import com.example.travel.domain.user.policy.NicknamePolicy;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -26,7 +27,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = NicknamePolicy.MAX_LENGTH)
     private String nickname;
 
     @Column(name = "avatar_url", columnDefinition = "TEXT")
@@ -75,5 +76,9 @@ public class User {
 
     public void recordLogin() {
         this.lastLoginAt = OffsetDateTime.now();
+    }
+
+    public void updateAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 }

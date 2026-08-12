@@ -43,7 +43,7 @@ class KakaoUserWriterTest {
     void createsSocialUserWithEmailAndWithoutPassword() {
         var kakaoUser = new KakaoUserResponse(123L, new KakaoUserResponse.KakaoAccount(
                 true, false, true, true, "user@example.com",
-                new KakaoUserResponse.Profile("여행자")));
+                new KakaoUserResponse.Profile("여행자", "https://example.com/kakao.jpg")));
 
         Long userId = userWriter.findOrCreate(kakaoUser);
         var socialAccount = socialAccountRepository
@@ -52,6 +52,8 @@ class KakaoUserWriterTest {
 
         assertThat(socialAccount.getUser().getId()).isEqualTo(userId);
         assertThat(socialAccount.getUser().getNickname()).isNotBlank();
+        assertThat(socialAccount.getUser().getAvatarUrl())
+                .isEqualTo("https://example.com/kakao.jpg");
         assertThat(socialAccount.getProviderEmail()).isEqualTo("user@example.com");
         assertThat(socialAccount.isEmailVerified()).isTrue();
         assertThat(socialAccount.getProvider()).isEqualTo(AuthProvider.KAKAO);
@@ -65,7 +67,7 @@ class KakaoUserWriterTest {
                 localUser, "same@example.com", "encoded-password"));
         var kakaoUser = new KakaoUserResponse(789L, new KakaoUserResponse.KakaoAccount(
                 true, false, true, true, "same@example.com",
-                new KakaoUserResponse.Profile("카카오사용자")));
+                new KakaoUserResponse.Profile("카카오사용자", null)));
 
         Long kakaoUserId = userWriter.findOrCreate(kakaoUser);
 
@@ -84,5 +86,21 @@ class KakaoUserWriterTest {
         assertThatThrownBy(() -> userWriter.findOrCreate(kakaoUser))
                 .isInstanceOfSatisfying(ApiException.class, exception ->
                         assertThat(exception.getCode()).isEqualTo("KAKAO_422_EMAIL_REQUIRED"));
+    }
+
+    @Test
+    void updatesExistingKakaoUsersProfileImageOnLogin() {
+        var firstLogin = new KakaoUserResponse(999L, new KakaoUserResponse.KakaoAccount(
+                true, false, true, true, "user@example.com",
+                new KakaoUserResponse.Profile("사용자", "https://example.com/old.jpg")));
+        Long userId = userWriter.findOrCreate(firstLogin);
+
+        var nextLogin = new KakaoUserResponse(999L, new KakaoUserResponse.KakaoAccount(
+                true, false, true, true, "user@example.com",
+                new KakaoUserResponse.Profile("사용자", "https://example.com/new.jpg")));
+        userWriter.findOrCreate(nextLogin);
+
+        assertThat(userRepository.findById(userId).orElseThrow().getAvatarUrl())
+                .isEqualTo("https://example.com/new.jpg");
     }
 }

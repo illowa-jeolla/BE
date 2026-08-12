@@ -29,6 +29,7 @@ out/
 ### Local Codex documentation ###
 SESSION_CONTEXT.md
 PRODUCTION_SECURITY_TODO.md
+API_SPEC.md
 
 ### Local environment configuration ###
 .env
