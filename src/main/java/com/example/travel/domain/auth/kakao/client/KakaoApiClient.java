@@ -39,7 +39,7 @@ public class KakaoApiClient {
             if (token == null || token.accessToken() == null) throw kakaoUnavailable();
             return token;
         } catch (RestClientException exception) {
-            throw kakaoUnavailable();
+            throw kakaoUnavailable(exception);
         }
     }
 
@@ -59,11 +59,15 @@ public class KakaoApiClient {
             if (user == null || user.id() == null) throw kakaoUnavailable();
             return user;
         } catch (RestClientException exception) {
-            throw kakaoUnavailable();
+            throw kakaoUnavailable(exception);
         }
     }
 
     private KakaoException kakaoUnavailable() {
         return new KakaoException(KakaoErrorCode.API_ERROR);
+    }
+
+    private KakaoException kakaoUnavailable(Throwable cause) {
+        return new KakaoException(KakaoErrorCode.API_ERROR, cause);
     }
 }
