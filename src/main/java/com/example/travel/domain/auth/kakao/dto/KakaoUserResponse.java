@@ -18,7 +18,10 @@ public record KakaoUserResponse(Long id, @JsonProperty("kakao_account") KakaoAcc
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Profile(String nickname) {}
+    public record Profile(
+            String nickname,
+            @JsonProperty("profile_image_url") String profileImageUrl
+    ) {}
 
     public String nicknameOrDefault() {
         if (account == null || account.profile() == null
@@ -40,5 +43,14 @@ public record KakaoUserResponse(Long id, @JsonProperty("kakao_account") KakaoAcc
             return Optional.empty();
         }
         return Optional.of(account.email().trim().toLowerCase());
+    }
+
+    public Optional<String> profileImageUrl() {
+        if (account == null || account.profile() == null
+                || account.profile().profileImageUrl() == null
+                || account.profile().profileImageUrl().isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(account.profile().profileImageUrl().trim());
     }
 }

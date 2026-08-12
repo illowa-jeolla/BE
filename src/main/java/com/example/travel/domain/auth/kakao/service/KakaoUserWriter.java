@@ -31,24 +31,25 @@ public class KakaoUserWriter {
 
         return socialAccountRepository
                 .findByProviderAndProviderUserId(AuthProvider.KAKAO, providerUserId)
-                .map(account -> updateAndGetUserId(account, email))
+                .map(account -> updateAndGetUserId(account, email, kakaoUser))
                 .orElseGet(() -> create(kakaoUser, providerUserId, email));
     }
 
     private Long create(KakaoUserResponse kakaoUser, String providerUserId, String email) {
         User user = userRepository.save(User.createSocial(
                 kakaoUser.nicknameOrDefault(),
-                null));
+                kakaoUser.profileImageUrl().orElse(null)));
         user.recordLogin();
         socialAccountRepository.saveAndFlush(SocialAccount.create(
                 user, AuthProvider.KAKAO, providerUserId, email, true));
         return user.getId();
     }
 
-    private Long updateAndGetUserId(SocialAccount account, String email) {
+    private Long updateAndGetUserId(SocialAccount account, String email, KakaoUserResponse kakaoUser) {
         if (!email.equalsIgnoreCase(account.getProviderEmail()) || !account.isEmailVerified()) {
             account.updateEmail(email, true);
         }
+        kakaoUser.profileImageUrl().ifPresent(account.getUser()::updateAvatarUrl);
         account.getUser().recordLogin();
         return account.getUser().getId();
     }

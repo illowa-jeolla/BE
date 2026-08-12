@@ -73,6 +73,6 @@ class KakaoAuthServiceTest {
     private KakaoUserResponse kakaoUser(String email, boolean verified) {
         return new KakaoUserResponse(123L, new KakaoUserResponse.KakaoAccount(
                 true, false, true, verified, email,
-                new KakaoUserResponse.Profile("여행자")));
+                new KakaoUserResponse.Profile("여행자", null)));
     }
 }

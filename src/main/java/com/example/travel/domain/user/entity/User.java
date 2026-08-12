@@ -76,4 +76,8 @@ public class User {
     public void recordLogin() {
         this.lastLoginAt = OffsetDateTime.now();
     }
+
+    public void updateAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
 }

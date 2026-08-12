@@ -17,7 +17,7 @@ class KakaoUserResponseTest {
         String longNickname = "가".repeat(51);
         var response = new KakaoUserResponse(1L, new KakaoUserResponse.KakaoAccount(
                 true, false, true, true, "USER@EXAMPLE.COM",
-                new KakaoUserResponse.Profile(longNickname)));
+                new KakaoUserResponse.Profile(longNickname, null)));
 
         assertThat(response.nicknameOrDefault()).hasSize(50);
     }
@@ -31,5 +31,14 @@ class KakaoUserResponseTest {
 
         assertThat(verified.verifiedEmail()).contains("user@example.com");
         assertThat(unverified.verifiedEmail()).isEmpty();
+    }
+
+    @Test
+    void returnsTrimmedProfileImageUrlWhenProvided() {
+        var response = new KakaoUserResponse(1L, new KakaoUserResponse.KakaoAccount(
+                true, false, true, true, "user@example.com",
+                new KakaoUserResponse.Profile("사용자", " https://example.com/kakao.jpg ")));
+
+        assertThat(response.profileImageUrl()).contains("https://example.com/kakao.jpg");
     }
 }
