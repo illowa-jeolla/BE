@@ -1,5 +1,7 @@
 package com.example.travel.domain.auth.google.dto;
 
+import com.example.travel.domain.user.policy.NicknamePolicy;
+
 import java.util.Locale;
 
 public record GoogleUserInfo(
@@ -16,6 +18,6 @@ public record GoogleUserInfo(
 
     public String nicknameOrDefault() {
         String nickname = name == null || name.isBlank() ? "구글사용자" : name.trim();
-        return nickname.substring(0, Math.min(nickname.length(), 50));
+        return NicknamePolicy.truncate(nickname);
     }
 }

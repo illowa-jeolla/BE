@@ -24,4 +24,15 @@ class GoogleUserInfoTest {
         assertThat(new GoogleUserInfo("subject", "user@example.com", true,
                 "가".repeat(51), null).nicknameOrDefault()).hasSize(50);
     }
+
+    @Test
+    void doesNotSplitSurrogatePairAtNicknameBoundary() {
+        String nickname = "a".repeat(49) + "😀";
+
+        String result = new GoogleUserInfo(
+                "subject", "user@example.com", true, nickname, null).nicknameOrDefault();
+
+        assertThat(result).isEqualTo("a".repeat(49));
+        assertThat(result).doesNotContain("�");
+    }
 }

@@ -41,4 +41,15 @@ class KakaoUserResponseTest {
 
         assertThat(response.profileImageUrl()).contains("https://example.com/kakao.jpg");
     }
+
+    @Test
+    void doesNotSplitSurrogatePairAtNicknameBoundary() {
+        String nickname = "a".repeat(49) + "😀";
+        var response = new KakaoUserResponse(1L, new KakaoUserResponse.KakaoAccount(
+                true, false, true, true, "user@example.com",
+                new KakaoUserResponse.Profile(nickname, null)));
+
+        assertThat(response.nicknameOrDefault()).isEqualTo("a".repeat(49));
+        assertThat(response.nicknameOrDefault()).doesNotContain("�");
+    }
 }

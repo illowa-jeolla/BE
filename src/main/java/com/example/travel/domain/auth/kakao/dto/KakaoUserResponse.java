@@ -1,5 +1,6 @@
 package com.example.travel.domain.auth.kakao.dto;
 
+import com.example.travel.domain.user.policy.NicknamePolicy;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,8 +29,7 @@ public record KakaoUserResponse(Long id, @JsonProperty("kakao_account") KakaoAcc
                 || account.profile().nickname() == null || account.profile().nickname().isBlank()) {
             return "카카오사용자";
         }
-        String nickname = account.profile().nickname();
-        return nickname.length() <= 50 ? nickname : nickname.substring(0, 50);
+        return NicknamePolicy.truncate(account.profile().nickname());
     }
 
     public Optional<String> verifiedEmail() {
