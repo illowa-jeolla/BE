@@ -2,7 +2,7 @@ package com.example.travel.global.config;
 
 import com.example.travel.global.auth.JwtAuthenticationFilter;
 import com.example.travel.global.auth.JwtProperties;
-import com.example.travel.domain.auth.kakao.KakaoProperties;
+import com.example.travel.domain.auth.kakao.config.KakaoProperties;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.DispatcherType;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

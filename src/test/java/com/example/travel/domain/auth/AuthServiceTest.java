@@ -2,11 +2,13 @@ package com.example.travel.domain.auth;
 
 import com.example.travel.domain.auth.dto.LoginRequest;
 import com.example.travel.domain.auth.dto.SignupRequest;
-import com.example.travel.domain.user.LocalCredential;
-import com.example.travel.domain.user.LocalCredentialRepository;
-import com.example.travel.domain.user.User;
-import com.example.travel.domain.user.UserRepository;
-import com.example.travel.domain.user.UserStatus;
+import com.example.travel.domain.auth.service.AuthService;
+import com.example.travel.domain.auth.service.UserSignupWriter;
+import com.example.travel.domain.user.entity.LocalCredential;
+import com.example.travel.domain.user.repository.LocalCredentialRepository;
+import com.example.travel.domain.user.entity.User;
+import com.example.travel.domain.user.repository.UserRepository;
+import com.example.travel.domain.user.enums.UserStatus;
 import com.example.travel.global.auth.JwtProvider;
 import com.example.travel.global.auth.RefreshTokenCookieProvider;
 import com.example.travel.global.auth.RefreshTokenService;

@@ -1,10 +1,15 @@
 package com.example.travel.domain.auth.kakao;
 
-import com.example.travel.domain.auth.AuthService;
+import com.example.travel.domain.auth.service.AuthService;
 import com.example.travel.domain.auth.dto.AuthTokenResponse;
+import com.example.travel.domain.auth.kakao.client.KakaoApiClient;
+import com.example.travel.domain.auth.kakao.config.KakaoProperties;
 import com.example.travel.domain.auth.kakao.dto.KakaoTokenResponse;
 import com.example.travel.domain.auth.kakao.dto.KakaoUserResponse;
-import com.example.travel.domain.user.SocialAccountRepository;
+import com.example.travel.domain.auth.kakao.service.KakaoAuthService;
+import com.example.travel.domain.auth.kakao.service.KakaoLoginStateService;
+import com.example.travel.domain.auth.kakao.service.KakaoUserWriter;
+import com.example.travel.domain.user.repository.SocialAccountRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
