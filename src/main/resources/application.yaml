@@ -36,6 +36,6 @@ google:
 
 tour-info:
   service-key: ${TOUR_INFO_KOREAN_API:}
-  base-url: http://apis.data.go.kr/B551011/KorService2
+  base-url: https://apis.data.go.kr/B551011/KorService2
   mobile-os: ETC
   mobile-app: tour_gong
