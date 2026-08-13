@@ -41,4 +41,16 @@ public class GatheringParticipant {
     @Column(name = "joined_at", nullable = false, insertable = false, updatable = false)
     @ColumnDefault("CURRENT_TIMESTAMP")
     private OffsetDateTime joinedAt;
+
+    private GatheringParticipant(Gathering gathering, User user, ParticipantRole participantRole) {
+        this.id = new GatheringParticipantId(gathering.getId(), user.getId());
+        this.gathering = gathering;
+        this.user = user;
+        this.participantRole = participantRole;
+        this.status = ParticipantStatus.JOINED;
+    }
+
+    public static GatheringParticipant createHost(Gathering gathering, User user) {
+        return new GatheringParticipant(gathering, user, ParticipantRole.HOST);
+    }
 }

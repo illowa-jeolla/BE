@@ -56,4 +56,25 @@ public class Gathering extends UpdatedAtEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private GatheringStatus status = GatheringStatus.OPEN;
+
+    private Gathering(User creator, Region region, String title, short capacity,
+                      String meetingPlace, OffsetDateTime startsAt,
+                      String concept, String description) {
+        this.creator = creator;
+        this.region = region;
+        this.title = title;
+        this.capacity = capacity;
+        this.meetingPlace = meetingPlace;
+        this.startsAt = startsAt;
+        this.concept = concept;
+        this.description = description;
+        this.status = GatheringStatus.OPEN;
+    }
+
+    public static Gathering create(User creator, Region region, String title, short capacity,
+                                   String meetingPlace, OffsetDateTime startsAt,
+                                   String concept, String description) {
+        return new Gathering(creator, region, title, capacity, meetingPlace,
+                startsAt, concept, description);
+    }
 }
