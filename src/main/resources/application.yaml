@@ -11,6 +11,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: always
   data:
     redis:
       host: ${REDIS_HOST}
@@ -36,7 +41,8 @@ google:
 
 gathering:
   cleanup:
-    fixed-delay: 60000
+    cron: "0 0 0 * * MON"
+    zone: Asia/Seoul
 
 tour-info:
   service-key: ${TOUR_INFO_KOREAN_API:}
