@@ -1,4 +1,4 @@
-package com.example.travel.domain.tour.service;
+package com.example.travel.domain.tour.client;
 
 import java.math.BigDecimal;
 import java.util.Map;

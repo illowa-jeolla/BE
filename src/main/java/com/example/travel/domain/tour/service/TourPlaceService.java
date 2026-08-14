@@ -1,5 +1,6 @@
 package com.example.travel.domain.tour.service;
 
+import com.example.travel.domain.tour.client.TourInfoClient;
 import com.example.travel.domain.tour.dto.TourPlaceDetailResponse;
 import com.example.travel.domain.tour.dto.TourPlaceMapResponse;
 import org.springframework.stereotype.Service;

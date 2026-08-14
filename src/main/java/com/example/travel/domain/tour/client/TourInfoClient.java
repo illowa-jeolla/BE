@@ -1,4 +1,4 @@
-package com.example.travel.domain.tour.service;
+package com.example.travel.domain.tour.client;
 
 import com.example.travel.domain.tour.config.TourInfoProperties;
 import com.example.travel.domain.tour.dto.TourPlaceDetailResponse;
