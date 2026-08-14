@@ -11,6 +11,14 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: never
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
   data:
     redis:
       host: ${REDIS_HOST}
@@ -33,6 +41,11 @@ google:
   client-id: ${GOOGLE_CLIENT_ID}
   client-secret: ${GOOGLE_CLIENT_SECRET}
   redirect-uri: ${GOOGLE_REDIRECT_URI}
+
+gathering:
+  cleanup:
+    cron: "0 0 0 * * MON"
+    zone: Asia/Seoul
 
 tour-info:
   service-key: ${TOUR_INFO_KOREAN_API:}

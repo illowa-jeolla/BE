@@ -30,6 +30,7 @@ out/
 SESSION_CONTEXT.md
 PRODUCTION_SECURITY_TODO.md
 API_SPEC.md
+gathering session.md
 
 ### Local environment configuration ###
 .env

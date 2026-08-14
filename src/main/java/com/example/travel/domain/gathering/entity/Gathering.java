@@ -56,4 +56,62 @@ public class Gathering extends UpdatedAtEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private GatheringStatus status = GatheringStatus.OPEN;
+
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
+    private Gathering(User creator, Region region, String title, short capacity,
+                      String meetingPlace, OffsetDateTime startsAt,
+                      String concept, String description) {
+        this.creator = creator;
+        this.region = region;
+        this.title = title;
+        this.capacity = capacity;
+        this.meetingPlace = meetingPlace;
+        this.startsAt = startsAt;
+        this.concept = concept;
+        this.description = description;
+        this.status = GatheringStatus.OPEN;
+    }
+
+    public static Gathering create(User creator, Region region, String title, short capacity,
+                                   String meetingPlace, OffsetDateTime startsAt,
+                                   String concept, String description) {
+        return new Gathering(creator, region, title, capacity, meetingPlace,
+                startsAt, concept, description);
+    }
+
+    public void markFull() {
+        this.status = GatheringStatus.FULL;
+    }
+
+    public void reopen() {
+        this.status = GatheringStatus.OPEN;
+    }
+
+    public void update(String title, String description, String concept,
+                       String meetingPlace, OffsetDateTime startsAt, Short capacity) {
+        if (title != null) {
+            this.title = title;
+        }
+        if (description != null) {
+            this.description = description;
+        }
+        if (concept != null) {
+            this.concept = concept;
+        }
+        if (meetingPlace != null) {
+            this.meetingPlace = meetingPlace;
+        }
+        if (startsAt != null) {
+            this.startsAt = startsAt;
+        }
+        if (capacity != null) {
+            this.capacity = capacity;
+        }
+    }
+
+    public void softDelete(OffsetDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
 }
