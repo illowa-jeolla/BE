@@ -37,3 +37,9 @@ google:
 gathering:
   cleanup:
     fixed-delay: 60000
+
+tour-info:
+  service-key: ${TOUR_INFO_KOREAN_API:}
+  base-url: https://apis.data.go.kr/B551011/KorService2
+  mobile-os: ETC
+  mobile-app: tour_gong

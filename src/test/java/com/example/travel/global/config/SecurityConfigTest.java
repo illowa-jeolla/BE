@@ -1,5 +1,6 @@
 package com.example.travel.global.config;
 
+import com.example.travel.global.auth.JwtProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,10 +12,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,6 +36,9 @@ class SecurityConfigTest {
 
     @Autowired
     private FilterChainProxy filterChainProxy;
+
+    @Autowired
+    private JwtProvider jwtProvider;
 
     @Test
     void removedTemporaryHomeIsNotPublic() throws Exception {
@@ -87,5 +94,37 @@ class SecurityConfigTest {
                         .header("X-XSRF-TOKEN",
                                 csrfResult.getResponse().getCookie("XSRF-TOKEN").getValue()))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void tourApiRequiresAccessToken() throws Exception {
+        mockMvc.perform(get("/api/v1/tour/places")
+                        .param("region", "전주"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void validAccessTokenPassesTourSecurityCheck() throws Exception {
+        String token = jwtProvider.createAccessToken(7L, "USER");
+
+        mockMvc.perform(get("/api/v1/tour/security-check")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void corsPreflightAllowsGetAndPostWithConfiguredHeaders() throws Exception {
+        mockMvc.perform(options("/api/v1/tour/places")
+                        .header("Origin", "http://localhost:3000")
+                        .header("Access-Control-Request-Method", "GET")
+                        .header("Access-Control-Request-Headers",
+                                "Content-Type, Authorization, X-XSRF-TOKEN"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"))
+                .andExpect(header().string("Access-Control-Allow-Methods", containsString("GET")))
+                .andExpect(header().string("Access-Control-Allow-Methods", containsString("POST")))
+                .andExpect(header().string("Access-Control-Allow-Headers", containsString("Content-Type")))
+                .andExpect(header().string("Access-Control-Allow-Headers", containsString("Authorization")))
+                .andExpect(header().string("Access-Control-Allow-Headers", containsString("X-XSRF-TOKEN")));
     }
 }
