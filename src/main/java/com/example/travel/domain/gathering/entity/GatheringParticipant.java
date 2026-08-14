@@ -53,4 +53,12 @@ public class GatheringParticipant {
     public static GatheringParticipant createHost(Gathering gathering, User user) {
         return new GatheringParticipant(gathering, user, ParticipantRole.HOST);
     }
+
+    public static GatheringParticipant createMember(Gathering gathering, User user) {
+        return new GatheringParticipant(gathering, user, ParticipantRole.MEMBER);
+    }
+
+    public void cancel() {
+        this.status = ParticipantStatus.CANCELLED;
+    }
 }

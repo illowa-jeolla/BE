@@ -2,8 +2,12 @@ package com.example.travel.domain.gathering.service;
 
 import com.example.travel.domain.gathering.dto.CreateGatheringRequest;
 import com.example.travel.domain.gathering.dto.CreateGatheringResponse;
+import com.example.travel.domain.gathering.dto.UpdateGatheringRequest;
+import com.example.travel.domain.gathering.dto.UpdateGatheringResponse;
 import com.example.travel.domain.gathering.entity.Gathering;
 import com.example.travel.domain.gathering.entity.GatheringParticipant;
+import com.example.travel.domain.gathering.enums.GatheringStatus;
+import com.example.travel.domain.gathering.enums.ParticipantStatus;
 import com.example.travel.domain.gathering.exception.GatheringErrorCode;
 import com.example.travel.domain.gathering.exception.GatheringException;
 import com.example.travel.domain.gathering.repository.GatheringParticipantRepository;
@@ -56,5 +60,65 @@ public class GatheringService {
         participantRepository.save(GatheringParticipant.createHost(saved, creator));
 
         return new CreateGatheringResponse(saved.getId(), saved.getStatus());
+    }
+
+    @Transactional
+    public UpdateGatheringResponse update(Long gatheringId, Long userId,
+                                          UpdateGatheringRequest request) {
+        Gathering gathering = findForHost(gatheringId, userId);
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        if (!gathering.getStartsAt().isAfter(now)) {
+            throw new GatheringException(GatheringErrorCode.ALREADY_STARTED);
+        }
+        if (gathering.getStatus() != GatheringStatus.OPEN
+                && gathering.getStatus() != GatheringStatus.FULL) {
+            throw new GatheringException(GatheringErrorCode.NOT_EDITABLE);
+        }
+        if (!request.hasChanges()) {
+            throw new GatheringException(GatheringErrorCode.EMPTY_UPDATE);
+        }
+        if (request.startsAt() != null && !request.startsAt().isAfter(now)) {
+            throw new GatheringException(GatheringErrorCode.INVALID_START_TIME);
+        }
+
+        long participantCount = participantRepository.countByGatheringAndStatus(
+                gatheringId, ParticipantStatus.JOINED);
+        if (request.capacity() != null && request.capacity() < participantCount) {
+            throw new GatheringException(GatheringErrorCode.INVALID_CAPACITY);
+        }
+
+        gathering.update(trim(request.title()), trim(request.description()),
+                trim(request.concept()), trim(request.meetingPlace()), request.startsAt(),
+                request.capacity() == null ? null : request.capacity().shortValue());
+        if (gathering.getCapacity() == participantCount) {
+            gathering.markFull();
+        } else if (gathering.getStatus() == GatheringStatus.FULL) {
+            gathering.reopen();
+        }
+
+        return new UpdateGatheringResponse(gathering.getId(), gathering.getTitle(),
+                gathering.getDescription(), gathering.getConcept(), gathering.getMeetingPlace(),
+                gathering.getStartsAt(), gathering.getCapacity(), participantCount,
+                gathering.getStatus());
+    }
+
+    @Transactional
+    public void delete(Long gatheringId, Long userId) {
+        Gathering gathering = findForHost(gatheringId, userId);
+        gathering.softDelete(OffsetDateTime.now(clock));
+    }
+
+    private Gathering findForHost(Long gatheringId, Long userId) {
+        Gathering gathering = gatheringRepository.findByIdForUpdate(gatheringId)
+                .orElseThrow(() -> new GatheringException(
+                        GatheringErrorCode.GATHERING_NOT_FOUND));
+        if (!gathering.getCreator().getId().equals(userId)) {
+            throw new GatheringException(GatheringErrorCode.HOST_PERMISSION_REQUIRED);
+        }
+        return gathering;
+    }
+
+    private String trim(String value) {
+        return value == null ? null : value.trim();
     }
 }
