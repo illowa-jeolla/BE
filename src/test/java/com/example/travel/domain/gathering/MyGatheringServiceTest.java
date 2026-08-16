@@ -1,8 +1,8 @@
 package com.example.travel.domain.gathering;
 
-import com.example.travel.domain.gathering.dto.MyGatheringCandidate;
-import com.example.travel.domain.gathering.dto.MyGatheringRequest;
-import com.example.travel.domain.gathering.dto.MyGatheringResponse;
+import com.example.travel.domain.gathering.repository.projection.MyGatheringProjection;
+import com.example.travel.domain.gathering.dto.request.MyGatheringRequest;
+import com.example.travel.domain.gathering.dto.response.MyGatheringResponse;
 import com.example.travel.domain.gathering.enums.GatheringStatus;
 import com.example.travel.domain.gathering.enums.GatheringTiming;
 import com.example.travel.domain.gathering.enums.ParticipantRole;
@@ -69,8 +69,8 @@ class MyGatheringServiceTest {
                 org.mockito.ArgumentMatchers.eq(ParticipantStatus.JOINED), any(Pageable.class));
     }
 
-    private MyGatheringCandidate candidate(Long id, Instant startsAt) {
-        return new MyGatheringCandidate(id, "여수 모임", 1L, "여수", "산책", "여수역",
+    private MyGatheringProjection candidate(Long id, Instant startsAt) {
+        return new MyGatheringProjection(id, "여수 모임", 1L, "여수", "산책", "여수역",
                 OffsetDateTime.ofInstant(startsAt, ZoneOffset.UTC), (short) 5,
                 GatheringStatus.OPEN, 2L);
     }

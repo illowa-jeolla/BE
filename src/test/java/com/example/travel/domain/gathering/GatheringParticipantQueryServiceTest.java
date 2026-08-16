@@ -1,7 +1,7 @@
 package com.example.travel.domain.gathering;
 
-import com.example.travel.domain.gathering.dto.GatheringParticipantCandidate;
-import com.example.travel.domain.gathering.dto.GatheringParticipantListResponse;
+import com.example.travel.domain.gathering.repository.projection.GatheringParticipantProjection;
+import com.example.travel.domain.gathering.dto.response.GatheringParticipantListResponse;
 import com.example.travel.domain.gathering.enums.ParticipantRole;
 import com.example.travel.domain.gathering.enums.ParticipantStatus;
 import com.example.travel.domain.gathering.exception.GatheringException;
@@ -35,9 +35,9 @@ class GatheringParticipantQueryServiceTest {
                 1L, 3L, ParticipantStatus.JOINED)).thenReturn(true);
         when(participantRepository.findCurrentParticipants(1L, ParticipantStatus.JOINED))
                 .thenReturn(List.of(
-                        new GatheringParticipantCandidate(3L, "방장", "host.png",
+                        new GatheringParticipantProjection(3L, "방장", "host.png",
                                 ParticipantRole.HOST, ParticipantStatus.JOINED, joinedAt),
-                        new GatheringParticipantCandidate(7L, "참여자", null,
+                        new GatheringParticipantProjection(7L, "참여자", null,
                                 ParticipantRole.MEMBER, ParticipantStatus.JOINED, joinedAt)));
 
         GatheringParticipantListResponse response = service.findParticipants(1L, 3L);

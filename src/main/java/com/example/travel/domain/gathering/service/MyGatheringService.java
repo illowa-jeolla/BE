@@ -1,9 +1,9 @@
 package com.example.travel.domain.gathering.service;
 
-import com.example.travel.domain.gathering.dto.MyGatheringCandidate;
-import com.example.travel.domain.gathering.dto.MyGatheringItem;
-import com.example.travel.domain.gathering.dto.MyGatheringRequest;
-import com.example.travel.domain.gathering.dto.MyGatheringResponse;
+import com.example.travel.domain.gathering.repository.projection.MyGatheringProjection;
+import com.example.travel.domain.gathering.dto.item.MyGatheringItem;
+import com.example.travel.domain.gathering.dto.request.MyGatheringRequest;
+import com.example.travel.domain.gathering.dto.response.MyGatheringResponse;
 import com.example.travel.domain.gathering.enums.GatheringTiming;
 import com.example.travel.domain.gathering.enums.MyGatheringType;
 import com.example.travel.domain.gathering.enums.ParticipantRole;
@@ -39,7 +39,7 @@ public class MyGatheringService {
                 Sort.by(Sort.Direction.ASC, "startsAt", "id"));
 
         MyGatheringType type = MyGatheringType.fromApiValue(request.type());
-        Page<MyGatheringCandidate> page = type == MyGatheringType.HOSTED
+        Page<MyGatheringProjection> page = type == MyGatheringType.HOSTED
                 ? gatheringRepository.findHostedGatherings(
                         userId, ParticipantStatus.JOINED, pageable)
                 : gatheringRepository.findJoinedGatherings(userId, ParticipantRole.MEMBER,
@@ -51,7 +51,7 @@ public class MyGatheringService {
                 .toList(), pageNumber, pageSize, page.getTotalElements(), page.hasNext());
     }
 
-    private MyGatheringItem toItem(MyGatheringCandidate candidate, OffsetDateTime now) {
+    private MyGatheringItem toItem(MyGatheringProjection candidate, OffsetDateTime now) {
         GatheringTiming timing = candidate.startsAt().isAfter(now)
                 ? GatheringTiming.UPCOMING : GatheringTiming.PAST;
         return new MyGatheringItem(candidate.id(), candidate.title(),

@@ -2,7 +2,7 @@ package com.example.travel.domain.gathering;
 
 import com.example.travel.domain.gathering.repository.GatheringParticipantRepository;
 import com.example.travel.domain.gathering.repository.GatheringRepository;
-import com.example.travel.domain.gathering.service.ExpiredGatheringCleanupService;
+import com.example.travel.domain.gathering.service.cleanup.ExpiredGatheringCleanupService;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 

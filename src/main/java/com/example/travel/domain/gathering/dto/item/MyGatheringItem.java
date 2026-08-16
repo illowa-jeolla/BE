@@ -1,4 +1,4 @@
-package com.example.travel.domain.gathering.dto;
+package com.example.travel.domain.gathering.dto.item;
 
 import com.example.travel.domain.gathering.enums.GatheringStatus;
 import com.example.travel.domain.gathering.enums.GatheringTiming;

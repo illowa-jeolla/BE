@@ -1,18 +1,19 @@
-package com.example.travel.domain.gathering.dto;
+package com.example.travel.domain.gathering.repository.projection;
 
 import com.example.travel.domain.gathering.enums.GatheringStatus;
 
 import java.time.OffsetDateTime;
 
-public record UpdateGatheringResponse(
+public record MyGatheringProjection(
         Long id,
         String title,
-        String description,
+        Long regionId,
+        String regionName,
         String concept,
         String meetingPlace,
         OffsetDateTime startsAt,
         short capacity,
-        long participantCount,
-        GatheringStatus status
+        GatheringStatus status,
+        long participantCount
 ) {
 }

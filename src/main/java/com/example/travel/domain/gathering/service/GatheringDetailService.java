@@ -1,7 +1,7 @@
 package com.example.travel.domain.gathering.service;
 
-import com.example.travel.domain.gathering.dto.GatheringDetailCandidate;
-import com.example.travel.domain.gathering.dto.GatheringDetailResponse;
+import com.example.travel.domain.gathering.repository.projection.GatheringDetailProjection;
+import com.example.travel.domain.gathering.dto.response.GatheringDetailResponse;
 import com.example.travel.domain.gathering.enums.ParticipantStatus;
 import com.example.travel.domain.gathering.exception.GatheringErrorCode;
 import com.example.travel.domain.gathering.exception.GatheringException;
@@ -19,7 +19,7 @@ public class GatheringDetailService {
 
     @Transactional(readOnly = true)
     public GatheringDetailResponse findDetail(Long gatheringId, Long userId) {
-        GatheringDetailCandidate candidate = gatheringRepository.findDetail(
+        GatheringDetailProjection candidate = gatheringRepository.findDetail(
                         gatheringId, userId, ParticipantStatus.JOINED)
                 .orElseThrow(() -> new GatheringException(
                         GatheringErrorCode.GATHERING_NOT_FOUND));

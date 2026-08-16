@@ -1,7 +1,7 @@
 package com.example.travel.domain.gathering.service;
 
-import com.example.travel.domain.gathering.dto.GatheringParticipantItem;
-import com.example.travel.domain.gathering.dto.GatheringParticipantListResponse;
+import com.example.travel.domain.gathering.dto.item.GatheringParticipantItem;
+import com.example.travel.domain.gathering.dto.response.GatheringParticipantListResponse;
 import com.example.travel.domain.gathering.enums.ParticipantStatus;
 import com.example.travel.domain.gathering.exception.GatheringErrorCode;
 import com.example.travel.domain.gathering.exception.GatheringException;

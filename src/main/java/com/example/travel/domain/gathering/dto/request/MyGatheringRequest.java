@@ -1,4 +1,4 @@
-package com.example.travel.domain.gathering.dto;
+package com.example.travel.domain.gathering.dto.request;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

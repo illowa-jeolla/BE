@@ -1,6 +1,6 @@
 package com.example.travel.domain.gathering.config;
 
-import com.example.travel.domain.gathering.service.ExpiredGatheringCleanupService;
+import com.example.travel.domain.gathering.service.cleanup.ExpiredGatheringCleanupService;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;

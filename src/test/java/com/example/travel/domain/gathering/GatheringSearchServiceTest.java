@@ -1,13 +1,13 @@
 package com.example.travel.domain.gathering;
 
-import com.example.travel.domain.gathering.dto.GatheringSearchCandidate;
-import com.example.travel.domain.gathering.dto.GatheringSearchRequest;
-import com.example.travel.domain.gathering.dto.GatheringSearchResponse;
+import com.example.travel.domain.gathering.repository.projection.GatheringSearchProjection;
+import com.example.travel.domain.gathering.dto.request.GatheringSearchRequest;
+import com.example.travel.domain.gathering.dto.response.GatheringSearchResponse;
 import com.example.travel.domain.gathering.enums.GatheringStatus;
 import com.example.travel.domain.gathering.enums.ParticipantStatus;
 import com.example.travel.domain.gathering.exception.GatheringException;
 import com.example.travel.domain.gathering.repository.GatheringRepository;
-import com.example.travel.domain.gathering.service.GatheringRelevanceCalculator;
+import com.example.travel.domain.gathering.service.calculator.GatheringRelevanceCalculator;
 import com.example.travel.domain.gathering.service.GatheringSearchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,8 +62,8 @@ class GatheringSearchServiceTest {
 
     @Test
     void optionalTimeAndConceptPrioritizeBetterMatchWithoutFilteringCandidates() {
-        GatheringSearchCandidate exact = candidate(1L, "펍투어", "2026-08-13T19:00:00+09:00");
-        GatheringSearchCandidate other = candidate(2L, "해변 산책", "2026-08-13T18:00:00+09:00");
+        GatheringSearchProjection exact = candidate(1L, "펍투어", "2026-08-13T19:00:00+09:00");
+        GatheringSearchProjection other = candidate(2L, "해변 산책", "2026-08-13T18:00:00+09:00");
         when(gatheringRepository.findSearchCandidates(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(other, exact));
 
@@ -79,8 +79,8 @@ class GatheringSearchServiceTest {
 
     @Test
     void missingOptionalConditionsSortsByStartTime() {
-        GatheringSearchCandidate later = candidate(1L, "펍투어", "2026-08-13T20:00:00+09:00");
-        GatheringSearchCandidate earlier = candidate(2L, "산책", "2026-08-13T18:00:00+09:00");
+        GatheringSearchProjection later = candidate(1L, "펍투어", "2026-08-13T20:00:00+09:00");
+        GatheringSearchProjection earlier = candidate(2L, "산책", "2026-08-13T18:00:00+09:00");
         when(gatheringRepository.findSearchCandidates(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(later, earlier));
 
@@ -93,9 +93,9 @@ class GatheringSearchServiceTest {
 
     @Test
     void optionalMeetingPlacePrioritizesSimilarStoredMeetingPlace() {
-        GatheringSearchCandidate exact = candidate(
+        GatheringSearchProjection exact = candidate(
                 1L, "산책", "여수 낭만포차 입구", "2026-08-13T19:00:00+09:00");
-        GatheringSearchCandidate other = candidate(
+        GatheringSearchProjection other = candidate(
                 2L, "산책", "오동도 주차장", "2026-08-13T19:00:00+09:00");
         when(gatheringRepository.findSearchCandidates(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(other, exact));
@@ -149,13 +149,13 @@ class GatheringSearchServiceTest {
                 LocalDate.of(2026, 8, 14), time, concept, meetingPlace, page, size);
     }
 
-    private GatheringSearchCandidate candidate(Long id, String concept, String startsAt) {
+    private GatheringSearchProjection candidate(Long id, String concept, String startsAt) {
         return candidate(id, concept, "만남 장소", startsAt);
     }
 
-    private GatheringSearchCandidate candidate(Long id, String concept, String meetingPlace,
+    private GatheringSearchProjection candidate(Long id, String concept, String meetingPlace,
                                                 String startsAt) {
-        return new GatheringSearchCandidate(id, "게더링 " + id, 10L, "여수", concept,
+        return new GatheringSearchProjection(id, "게더링 " + id, 10L, "여수", concept,
                 meetingPlace, OffsetDateTime.parse(startsAt), (short) 4,
                 GatheringStatus.OPEN, 15L, "남도산책", 2L, 0L);
     }

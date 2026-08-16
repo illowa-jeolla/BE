@@ -1,4 +1,4 @@
-package com.example.travel.domain.gathering.service;
+package com.example.travel.domain.gathering.service.cleanup;
 
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.parameters.JobParametersBuilder;

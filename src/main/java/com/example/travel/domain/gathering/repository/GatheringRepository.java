@@ -1,9 +1,9 @@
 package com.example.travel.domain.gathering.repository;
 
 import com.example.travel.domain.gathering.entity.Gathering;
-import com.example.travel.domain.gathering.dto.GatheringSearchCandidate;
-import com.example.travel.domain.gathering.dto.GatheringDetailCandidate;
-import com.example.travel.domain.gathering.dto.MyGatheringCandidate;
+import com.example.travel.domain.gathering.repository.projection.GatheringSearchProjection;
+import com.example.travel.domain.gathering.repository.projection.GatheringDetailProjection;
+import com.example.travel.domain.gathering.repository.projection.MyGatheringProjection;
 import com.example.travel.domain.gathering.enums.GatheringStatus;
 import com.example.travel.domain.gathering.enums.ParticipantRole;
 import com.example.travel.domain.gathering.enums.ParticipantStatus;
@@ -23,7 +23,7 @@ import java.util.Optional;
 
 public interface GatheringRepository extends JpaRepository<Gathering, Long> {
     @Query(value = """
-            select new com.example.travel.domain.gathering.dto.MyGatheringCandidate(
+            select new com.example.travel.domain.gathering.repository.projection.MyGatheringProjection(
                 g.id, g.title, g.region.id, g.region.name, g.concept, g.meetingPlace,
                 g.startsAt, g.capacity, g.status,
                 count(case when gp.status = :joinedStatus then 1 else null end)
@@ -39,13 +39,13 @@ public interface GatheringRepository extends JpaRepository<Gathering, Long> {
                     select count(g) from Gathering g
                     where g.creator.id = :userId and g.deletedAt is null
                     """)
-    Page<MyGatheringCandidate> findHostedGatherings(
+    Page<MyGatheringProjection> findHostedGatherings(
             @Param("userId") Long userId,
             @Param("joinedStatus") ParticipantStatus joinedStatus,
             Pageable pageable);
 
     @Query(value = """
-            select new com.example.travel.domain.gathering.dto.MyGatheringCandidate(
+            select new com.example.travel.domain.gathering.repository.projection.MyGatheringProjection(
                 g.id, g.title, g.region.id, g.region.name, g.concept, g.meetingPlace,
                 g.startsAt, g.capacity, g.status,
                 count(case when gp.status = :joinedStatus then 1 else null end)
@@ -77,7 +77,7 @@ public interface GatheringRepository extends JpaRepository<Gathering, Long> {
                           and mine.status = :joinedStatus
                     )
                     """)
-    Page<MyGatheringCandidate> findJoinedGatherings(
+    Page<MyGatheringProjection> findJoinedGatherings(
             @Param("userId") Long userId,
             @Param("memberRole") ParticipantRole memberRole,
             @Param("joinedStatus") ParticipantStatus joinedStatus,
@@ -91,7 +91,7 @@ public interface GatheringRepository extends JpaRepository<Gathering, Long> {
     Optional<Gathering> findByIdForUpdate(@Param("gatheringId") Long gatheringId);
 
     @Query("""
-            select new com.example.travel.domain.gathering.dto.GatheringDetailCandidate(
+            select new com.example.travel.domain.gathering.repository.projection.GatheringDetailProjection(
                 g.id, g.title, g.description, g.region.id, g.region.name,
                 g.concept, g.meetingPlace, g.latitude, g.longitude, g.startsAt,
                 g.capacity, g.status, g.creator.id, g.creator.nickname,
@@ -109,13 +109,13 @@ public interface GatheringRepository extends JpaRepository<Gathering, Long> {
                      g.capacity, g.status, g.creator.id, g.creator.nickname,
                      g.creator.avatarUrl, g.createdAt, g.updatedAt
             """)
-    Optional<GatheringDetailCandidate> findDetail(
+    Optional<GatheringDetailProjection> findDetail(
             @Param("gatheringId") Long gatheringId,
             @Param("userId") Long userId,
             @Param("participantStatus") ParticipantStatus participantStatus);
 
     @Query("""
-            select new com.example.travel.domain.gathering.dto.GatheringSearchCandidate(
+            select new com.example.travel.domain.gathering.repository.projection.GatheringSearchProjection(
                 g.id, g.title, g.region.id, g.region.name, g.concept, g.meetingPlace,
                 g.startsAt, g.capacity, g.status, g.creator.id, g.creator.nickname,
                 count(case when gp.status = :participantStatus then 1 else null end),
@@ -134,7 +134,7 @@ public interface GatheringRepository extends JpaRepository<Gathering, Long> {
             group by g.id, g.title, g.region.id, g.region.name, g.concept, g.meetingPlace,
                      g.startsAt, g.capacity, g.status, g.creator.id, g.creator.nickname
             """)
-    List<GatheringSearchCandidate> findSearchCandidates(
+    List<GatheringSearchProjection> findSearchCandidates(
             @Param("userId") Long userId,
             @Param("region") String region,
             @Param("startsAt") OffsetDateTime startsAt,

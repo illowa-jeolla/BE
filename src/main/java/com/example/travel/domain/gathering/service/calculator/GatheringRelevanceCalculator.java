@@ -1,4 +1,4 @@
-package com.example.travel.domain.gathering.service;
+package com.example.travel.domain.gathering.service.calculator;
 
 import org.springframework.stereotype.Component;
 
