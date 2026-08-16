@@ -1,9 +1,9 @@
-package com.example.travel.domain.gathering.dto;
+package com.example.travel.domain.gathering.dto.response;
 
 import com.example.travel.domain.gathering.enums.GatheringStatus;
 import com.example.travel.domain.gathering.enums.ParticipantStatus;
 
-public record JoinGatheringResponse(
+public record CancelGatheringParticipationResponse(
         Long gatheringId,
         ParticipantStatus participantStatus,
         long participantCount,

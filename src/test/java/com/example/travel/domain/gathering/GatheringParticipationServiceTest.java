@@ -1,6 +1,6 @@
 package com.example.travel.domain.gathering;
 
-import com.example.travel.domain.gathering.dto.JoinGatheringResponse;
+import com.example.travel.domain.gathering.dto.response.JoinGatheringResponse;
 import com.example.travel.domain.gathering.entity.Gathering;
 import com.example.travel.domain.gathering.entity.GatheringParticipant;
 import com.example.travel.domain.gathering.enums.GatheringStatus;

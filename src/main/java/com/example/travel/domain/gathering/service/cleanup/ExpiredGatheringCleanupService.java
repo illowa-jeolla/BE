@@ -1,4 +1,4 @@
-package com.example.travel.domain.gathering.service;
+package com.example.travel.domain.gathering.service.cleanup;
 
 import com.example.travel.domain.gathering.repository.GatheringParticipantRepository;
 import com.example.travel.domain.gathering.repository.GatheringRepository;

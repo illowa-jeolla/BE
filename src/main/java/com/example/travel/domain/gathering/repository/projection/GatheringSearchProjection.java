@@ -1,29 +1,22 @@
-package com.example.travel.domain.gathering.dto;
+package com.example.travel.domain.gathering.repository.projection;
 
 import com.example.travel.domain.gathering.enums.GatheringStatus;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
-public record GatheringDetailCandidate(
+public record GatheringSearchProjection(
         Long id,
         String title,
-        String description,
         Long regionId,
         String regionName,
         String concept,
         String meetingPlace,
-        BigDecimal latitude,
-        BigDecimal longitude,
         OffsetDateTime startsAt,
         short capacity,
         GatheringStatus status,
         Long creatorId,
         String creatorNickname,
-        String creatorAvatarUrl,
-        OffsetDateTime createdAt,
-        OffsetDateTime updatedAt,
-        long participantCount,
-        long joinedCount
+        Long participantCount,
+        Long joinedCount
 ) {
 }

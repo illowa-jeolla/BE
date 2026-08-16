@@ -1,7 +1,7 @@
 package com.example.travel.domain.gathering;
 
-import com.example.travel.domain.gathering.dto.GatheringDetailCandidate;
-import com.example.travel.domain.gathering.dto.GatheringDetailResponse;
+import com.example.travel.domain.gathering.repository.projection.GatheringDetailProjection;
+import com.example.travel.domain.gathering.dto.response.GatheringDetailResponse;
 import com.example.travel.domain.gathering.enums.GatheringStatus;
 import com.example.travel.domain.gathering.enums.ParticipantStatus;
 import com.example.travel.domain.gathering.exception.GatheringException;
@@ -26,7 +26,7 @@ class GatheringDetailServiceTest {
     void returnsGatheringDetailWithParticipationAndHostState() {
         OffsetDateTime startsAt = OffsetDateTime.parse("2026-08-20T19:00:00+09:00");
         OffsetDateTime createdAt = OffsetDateTime.parse("2026-08-14T09:00:00+09:00");
-        GatheringDetailCandidate candidate = new GatheringDetailCandidate(
+        GatheringDetailProjection candidate = new GatheringDetailProjection(
                 10L, "여수 펍 투어", "함께 둘러봐요", 1L, "여수", "펍투어",
                 "여수역", new BigDecimal("34.7527000"),
                 new BigDecimal("127.7485000"), startsAt, (short) 6,

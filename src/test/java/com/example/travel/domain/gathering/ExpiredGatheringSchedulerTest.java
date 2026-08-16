@@ -1,6 +1,6 @@
 package com.example.travel.domain.gathering;
 
-import com.example.travel.domain.gathering.service.ExpiredGatheringScheduler;
+import com.example.travel.domain.gathering.service.cleanup.ExpiredGatheringScheduler;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.parameters.JobParameters;

@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import com.example.travel.domain.gathering.enums.ParticipantStatus;
-import com.example.travel.domain.gathering.dto.GatheringParticipantCandidate;
+import com.example.travel.domain.gathering.repository.projection.GatheringParticipantProjection;
 
 public interface GatheringParticipantRepository
         extends JpaRepository<GatheringParticipant, GatheringParticipantId> {
@@ -26,7 +26,7 @@ public interface GatheringParticipantRepository
                                     @Param("status") ParticipantStatus status);
 
     @Query("""
-            select new com.example.travel.domain.gathering.dto.GatheringParticipantCandidate(
+            select new com.example.travel.domain.gathering.repository.projection.GatheringParticipantProjection(
                 gp.user.id, gp.user.nickname, gp.user.avatarUrl,
                 gp.participantRole, gp.status, gp.joinedAt
             )
@@ -36,7 +36,7 @@ public interface GatheringParticipantRepository
                           then 0 else 1 end,
                      gp.joinedAt asc, gp.user.id asc
             """)
-    java.util.List<GatheringParticipantCandidate> findCurrentParticipants(
+    java.util.List<GatheringParticipantProjection> findCurrentParticipants(
             @Param("gatheringId") Long gatheringId,
             @Param("status") ParticipantStatus status);
 

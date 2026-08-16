@@ -1,6 +1,6 @@
 package com.example.travel.domain.gathering;
 
-import com.example.travel.domain.gathering.service.GatheringRelevanceCalculator;
+import com.example.travel.domain.gathering.service.calculator.GatheringRelevanceCalculator;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalTime;

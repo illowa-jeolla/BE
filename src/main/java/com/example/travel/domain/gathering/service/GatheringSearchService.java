@@ -1,14 +1,15 @@
 package com.example.travel.domain.gathering.service;
 
-import com.example.travel.domain.gathering.dto.GatheringSearchCandidate;
-import com.example.travel.domain.gathering.dto.GatheringSearchItem;
-import com.example.travel.domain.gathering.dto.GatheringSearchRequest;
-import com.example.travel.domain.gathering.dto.GatheringSearchResponse;
+import com.example.travel.domain.gathering.repository.projection.GatheringSearchProjection;
+import com.example.travel.domain.gathering.dto.item.GatheringSearchItem;
+import com.example.travel.domain.gathering.dto.request.GatheringSearchRequest;
+import com.example.travel.domain.gathering.dto.response.GatheringSearchResponse;
 import com.example.travel.domain.gathering.enums.GatheringStatus;
 import com.example.travel.domain.gathering.enums.ParticipantStatus;
 import com.example.travel.domain.gathering.exception.GatheringErrorCode;
 import com.example.travel.domain.gathering.exception.GatheringException;
 import com.example.travel.domain.gathering.repository.GatheringRepository;
+import com.example.travel.domain.gathering.service.calculator.GatheringRelevanceCalculator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,7 +79,7 @@ public class GatheringSearchService {
                 sorted.size(), toIndex < sorted.size());
     }
 
-    private GatheringSearchItem toItem(GatheringSearchCandidate candidate,
+    private GatheringSearchItem toItem(GatheringSearchProjection candidate,
                                        LocalTime requestedTime, String requestedConcept,
                                        String requestedMeetingPlace) {
         Double timeScore = requestedTime == null ? null : relevanceCalculator.timeScore(

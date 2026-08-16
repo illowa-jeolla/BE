@@ -1,9 +1,9 @@
 package com.example.travel.domain.gathering.service;
 
-import com.example.travel.domain.gathering.dto.CreateGatheringRequest;
-import com.example.travel.domain.gathering.dto.CreateGatheringResponse;
-import com.example.travel.domain.gathering.dto.UpdateGatheringRequest;
-import com.example.travel.domain.gathering.dto.UpdateGatheringResponse;
+import com.example.travel.domain.gathering.dto.request.CreateGatheringRequest;
+import com.example.travel.domain.gathering.dto.response.CreateGatheringResponse;
+import com.example.travel.domain.gathering.dto.request.UpdateGatheringRequest;
+import com.example.travel.domain.gathering.dto.response.UpdateGatheringResponse;
 import com.example.travel.domain.gathering.entity.Gathering;
 import com.example.travel.domain.gathering.entity.GatheringParticipant;
 import com.example.travel.domain.gathering.enums.GatheringStatus;
