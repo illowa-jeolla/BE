@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalTime;
+import java.math.BigDecimal;
 
 @Getter
 @Entity
@@ -25,6 +26,18 @@ public class TravelGuideItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "place_id")
     private Place place;
+
+    @Column(name = "tour_content_id", length = 30)
+    private String tourContentId;
+
+    @Column(precision = 10, scale = 7)
+    private BigDecimal latitude;
+
+    @Column(precision = 10, scale = 7)
+    private BigDecimal longitude;
+
+    @Column(name = "thumbnail_url", columnDefinition = "TEXT")
+    private String thumbnailUrl;
 
     @Column(name = "day_number", nullable = false)
     private short dayNumber;
@@ -46,4 +59,39 @@ public class TravelGuideItem {
 
     @Column(name = "travel_minutes")
     private Integer travelMinutes;
+
+    @Column(name = "stay_minutes")
+    private Integer stayMinutes;
+
+    private TravelGuideItem(TravelGuide guide, String tourContentId, short dayNumber,
+                            short itemOrder, String title, String description,
+                            LocalTime startsAt, Integer stayMinutes, BigDecimal latitude,
+                            BigDecimal longitude, String thumbnailUrl) {
+        this.guide = guide;
+        this.tourContentId = tourContentId;
+        this.dayNumber = dayNumber;
+        this.itemOrder = itemOrder;
+        this.title = title;
+        this.description = description;
+        this.startsAt = startsAt;
+        this.endsAt = startsAt == null || stayMinutes == null
+                ? null : startsAt.plusMinutes(stayMinutes);
+        this.stayMinutes = stayMinutes;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.thumbnailUrl = thumbnailUrl;
+    }
+
+    public static TravelGuideItem create(TravelGuide guide, String tourContentId,
+                                         short dayNumber, short itemOrder, String title,
+                                         String description, LocalTime startsAt,
+                                         Integer stayMinutes, BigDecimal latitude,
+                                         BigDecimal longitude, String thumbnailUrl) {
+        return new TravelGuideItem(guide, tourContentId, dayNumber, itemOrder, title,
+                description, startsAt, stayMinutes, latitude, longitude, thumbnailUrl);
+    }
+
+    public void setTravelMinutes(Integer travelMinutes) {
+        this.travelMinutes = travelMinutes;
+    }
 }
