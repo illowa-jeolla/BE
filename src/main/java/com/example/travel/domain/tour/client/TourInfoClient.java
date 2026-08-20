@@ -62,6 +62,24 @@ public class TourInfoClient {
                 places(body.path("items").path("item")));
     }
 
+    //숙소 좌표 중심 관광지 조회
+    public TourPlaceMapResponse findPlacesNearby(BigDecimal latitude, BigDecimal longitude,
+                                                 int radius, int pageNo, int numOfRows) {
+        validateServiceKey();
+        validateCoordinates(latitude, longitude);
+
+        JsonNode response = request(locationBasedListUri(
+                latitude, longitude, radius, pageNo, numOfRows));
+        validateResponse(response);
+
+        JsonNode body = response.path("response").path("body");
+        return new TourPlaceMapResponse(
+                intValue(body, "pageNo", pageNo),
+                intValue(body, "numOfRows", numOfRows),
+                intValue(body, "totalCount", 0),
+                places(body.path("items").path("item")));
+    }
+
     public TourPlaceDetailResponse findPlaceDetail(String contentId) {
         validateServiceKey();
 
@@ -102,13 +120,19 @@ public class TourInfoClient {
     }
 
     private URI locationBasedListUri(TourRegion region, int pageNo, int numOfRows) {
+        return locationBasedListUri(region.latitude(), region.longitude(), MAX_RADIUS,
+                pageNo, numOfRows);
+    }
+
+    private URI locationBasedListUri(BigDecimal latitude, BigDecimal longitude,
+                                     int radius, int pageNo, int numOfRows) {
         String encodedServiceKey = serviceKeyForQuery();
         UriComponentsBuilder builder = commonUriBuilder("/locationBasedList2")
                 .queryParam("arrange", "S")
                 .queryParam("contentTypeId", "12")
-                .queryParam("mapX", region.longitude())
-                .queryParam("mapY", region.latitude())
-                .queryParam("radius", MAX_RADIUS)
+                .queryParam("mapX", longitude)
+                .queryParam("mapY", latitude)
+                .queryParam("radius", Math.min(Math.max(radius, 1), MAX_RADIUS))
                 .queryParam("pageNo", Math.max(pageNo, 1))
                 .queryParam("numOfRows", Math.min(Math.max(numOfRows, 1), 30));
         return uriWithServiceKey(builder, encodedServiceKey);
@@ -164,11 +188,15 @@ public class TourInfoClient {
         return new TourPlaceItem(
                 text(item, "contentid"),
                 text(item, "contenttypeid"),
+                text(item, "cat1"),
+                text(item, "cat2"),
+                text(item, "cat3"),
                 text(item, "title"),
                 address(item),
                 text(item, "firstimage2"),
                 decimal(item, "mapx"),
-                decimal(item, "mapy"));
+                decimal(item, "mapy"),
+                nullableInt(item, "dist"));
     }
 
     private TourPlaceDetailResponse detail(JsonNode item) {
@@ -213,6 +241,26 @@ public class TourInfoClient {
     private int intValue(JsonNode node, String field, int fallback) {
         JsonNode value = node.path(field);
         return value.isNumber() || value.isTextual() ? value.asInt(fallback) : fallback;
+    }
+
+    private Integer nullableInt(JsonNode node, String field) {
+        String value = text(node, field);
+        if (value == null || value.isBlank()) return null;
+        try {
+            return new BigDecimal(value).intValue();
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private void validateCoordinates(BigDecimal latitude, BigDecimal longitude) {
+        if (latitude == null || longitude == null
+                || latitude.compareTo(new BigDecimal("-90")) < 0
+                || latitude.compareTo(new BigDecimal("90")) > 0
+                || longitude.compareTo(new BigDecimal("-180")) < 0
+                || longitude.compareTo(new BigDecimal("180")) > 0) {
+            throw new TourException(TourErrorCode.INVALID_COORDINATES);
+        }
     }
 
     private TourException tourUnavailable() {

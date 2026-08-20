@@ -8,6 +8,14 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface RegionRepository extends JpaRepository<Region, Long> {
+    @Query("""
+            select r
+            from Region r
+            where r.id = :id
+              and r.active = true
+            """)
+    Optional<Region> findActiveById(@Param("id") Long id);
+
     @Query(value = """
             select *
             from regions
