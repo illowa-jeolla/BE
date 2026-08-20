@@ -5,6 +5,8 @@ import com.example.travel.global.auth.JwtProperties;
 import com.example.travel.domain.auth.kakao.config.KakaoProperties;
 import com.example.travel.domain.auth.google.config.GoogleProperties;
 import com.example.travel.domain.tour.config.TourInfoProperties;
+import com.example.travel.domain.location.config.KakaoMapProperties;
+import com.example.travel.domain.ai.config.OpenAiProperties;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.DispatcherType;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -26,7 +28,7 @@ import java.util.List;
 
 @Configuration
 @EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class, GoogleProperties.class,
-        TourInfoProperties.class})
+        TourInfoProperties.class, KakaoMapProperties.class, OpenAiProperties.class})
 public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter filter) throws Exception {
@@ -62,7 +64,7 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-XSRF-TOKEN"));
         configuration.setExposedHeaders(List.of("Set-Cookie"));
 
