@@ -1,6 +1,6 @@
 package com.example.travel.domain.travel.service;
 
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
 import com.example.travel.domain.travel.exception.TravelRecommendationException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -33,7 +33,7 @@ public class TravelRecommendationRequestCacheService {
         }
     }
 
-    public void save(TravelRecommendationRequest request) {
+    public void save(TravelRecommendationContext request) {
         try {
             redisTemplate.opsForValue().set(key(request.getId()),
                     OBJECT_MAPPER.writeValueAsString(request), TTL);
@@ -42,12 +42,12 @@ public class TravelRecommendationRequestCacheService {
         }
     }
 
-    public TravelRecommendationRequest find(Long requestId) {
+    public TravelRecommendationContext find(Long requestId) {
         try {
             String value = redisTemplate.opsForValue().get(key(requestId));
             if (value == null) throw new TravelRecommendationException(
                     TravelRecommendationErrorCode.REQUEST_NOT_FOUND);
-            return OBJECT_MAPPER.readValue(value, TravelRecommendationRequest.class);
+            return OBJECT_MAPPER.readValue(value, TravelRecommendationContext.class);
         } catch (JsonProcessingException | DataAccessException exception) {
             throw unavailable();
         }

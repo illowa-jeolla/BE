@@ -1,4 +1,4 @@
-package com.example.travel.domain.travel.entity;
+package com.example.travel.domain.travel.model;
 
 import com.example.travel.domain.travel.enums.CompanionType;
 import com.example.travel.domain.travel.enums.RecommendationStatus;
@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @Getter
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class TravelRecommendationRequest {
+public class TravelRecommendationContext {
     private Long id;
     private Long userId;
     private Long regionId;
@@ -43,14 +43,14 @@ public class TravelRecommendationRequest {
     private RecommendationStatus status;
     private boolean refreshRequest;
 
-    private TravelRecommendationRequest(Long id, Long userId, Long regionId, String regionName,
-            String lodgingKakaoPlaceId, String lodgingName, String lodgingAddress,
-            BigDecimal lodgingLatitude, BigDecimal lodgingLongitude, String startPlaceId,
-            String startPlaceName, String startPlaceAddress, BigDecimal startLatitude,
-            BigDecimal startLongitude, String endPlaceId, String endPlaceName,
-            String endPlaceAddress, BigDecimal endLatitude, BigDecimal endLongitude,
-            LocalDate startsOn, LocalDate endsOn, String[] themes, Integer[] dailyPlaceCounts,
-            TransportType transportType, CompanionType companionType, boolean refreshRequest) {
+    private TravelRecommendationContext(Long id, Long userId, Long regionId, String regionName,
+                                        String lodgingKakaoPlaceId, String lodgingName, String lodgingAddress,
+                                        BigDecimal lodgingLatitude, BigDecimal lodgingLongitude, String startPlaceId,
+                                        String startPlaceName, String startPlaceAddress, BigDecimal startLatitude,
+                                        BigDecimal startLongitude, String endPlaceId, String endPlaceName,
+                                        String endPlaceAddress, BigDecimal endLatitude, BigDecimal endLongitude,
+                                        LocalDate startsOn, LocalDate endsOn, String[] themes, Integer[] dailyPlaceCounts,
+                                        TransportType transportType, CompanionType companionType, boolean refreshRequest) {
         this.id = id; this.userId = userId; this.regionId = regionId; this.regionName = regionName;
         this.lodgingKakaoPlaceId = lodgingKakaoPlaceId; this.lodgingName = lodgingName;
         this.lodgingAddress = lodgingAddress; this.lodgingLatitude = lodgingLatitude;
@@ -65,15 +65,15 @@ public class TravelRecommendationRequest {
         this.status = RecommendationStatus.PENDING; this.refreshRequest = refreshRequest;
     }
 
-    public static TravelRecommendationRequest create(Long id, Long userId, Long regionId,
-            String regionName, String lodgingKakaoPlaceId, String lodgingName,
-            String lodgingAddress, BigDecimal lodgingLatitude, BigDecimal lodgingLongitude,
-            String startPlaceId, String startPlaceName, String startPlaceAddress,
-            BigDecimal startLatitude, BigDecimal startLongitude, String endPlaceId,
-            String endPlaceName, String endPlaceAddress, BigDecimal endLatitude,
-            BigDecimal endLongitude, LocalDate startsOn, LocalDate endsOn, String[] themes,
-            Integer[] dailyPlaceCounts, TransportType transportType, CompanionType companionType) {
-        return new TravelRecommendationRequest(id, userId, regionId, regionName,
+    public static TravelRecommendationContext create(Long id, Long userId, Long regionId,
+                                                     String regionName, String lodgingKakaoPlaceId, String lodgingName,
+                                                     String lodgingAddress, BigDecimal lodgingLatitude, BigDecimal lodgingLongitude,
+                                                     String startPlaceId, String startPlaceName, String startPlaceAddress,
+                                                     BigDecimal startLatitude, BigDecimal startLongitude, String endPlaceId,
+                                                     String endPlaceName, String endPlaceAddress, BigDecimal endLatitude,
+                                                     BigDecimal endLongitude, LocalDate startsOn, LocalDate endsOn, String[] themes,
+                                                     Integer[] dailyPlaceCounts, TransportType transportType, CompanionType companionType) {
+        return new TravelRecommendationContext(id, userId, regionId, regionName,
                 lodgingKakaoPlaceId, lodgingName, lodgingAddress, lodgingLatitude,
                 lodgingLongitude, startPlaceId, startPlaceName, startPlaceAddress,
                 startLatitude, startLongitude, endPlaceId, endPlaceName, endPlaceAddress,
@@ -81,8 +81,8 @@ public class TravelRecommendationRequest {
                 transportType, companionType, false);
     }
 
-    public TravelRecommendationRequest createRefreshRequest(Long newId) {
-        return new TravelRecommendationRequest(newId, userId, regionId, regionName,
+    public TravelRecommendationContext createRefreshRequest(Long newId) {
+        return new TravelRecommendationContext(newId, userId, regionId, regionName,
                 lodgingKakaoPlaceId, lodgingName, lodgingAddress, lodgingLatitude,
                 lodgingLongitude, startPlaceId, startPlaceName, startPlaceAddress,
                 startLatitude, startLongitude, endPlaceId, endPlaceName, endPlaceAddress,
