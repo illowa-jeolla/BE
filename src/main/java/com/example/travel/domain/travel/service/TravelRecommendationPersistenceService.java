@@ -73,7 +73,8 @@ public class TravelRecommendationPersistenceService {
                     }
                     TravelGuideItem guideItem = TravelGuideItem.create(guide, candidate.contentId(),
                             (short) day.dayNumber(), (short) item.order(), candidate.title(),
-                            item.reason(), LocalTime.parse(item.recommendedTime()),
+                            item.reason(), item.recommendedTime() == null
+                                    ? null : LocalTime.parse(item.recommendedTime()),
                             item.stayMinutes(), candidate.latitude(), candidate.longitude(),
                             candidate.thumbnailUrl());
                     routes.stream().filter(route -> route.dayNumber() == day.dayNumber()

@@ -4,10 +4,13 @@ import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
 import com.example.travel.domain.travel.dto.response.TravelGuideDraft;
 import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
+import com.example.travel.domain.travel.exception.TravelRecommendationException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.RedisScript;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -17,9 +20,12 @@ import com.example.travel.domain.travel.enums.TransportType;
 import com.example.travel.domain.travel.enums.CompanionType;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 class TravelGuideDraftCacheServiceTest {
     @Test
@@ -29,6 +35,49 @@ class TravelGuideDraftCacheServiceTest {
         ValueOperations<String, String> values = mock(ValueOperations.class);
         when(redisTemplate.opsForValue()).thenReturn(values);
         TravelGuideDraftCacheService service = new TravelGuideDraftCacheService(redisTemplate);
+        TravelGuideDraft draft = draft();
+
+        service.save(draft);
+
+        ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+        verify(values).set(org.mockito.ArgumentMatchers.eq("travel:guide:draft:10"),
+                json.capture(), org.mockito.ArgumentMatchers.eq(Duration.ofHours(24)));
+        when(values.get("travel:guide:draft:10")).thenReturn(json.getValue());
+        TravelGuideDraft restored = service.find(10L);
+        assertThat(restored.requestId()).isEqualTo(10L);
+        assertThat(restored.request().getRegionName()).isEqualTo("완도");
+        assertThat(restored.request().getStartsOn()).isEqualTo(LocalDate.of(2026, 8, 20));
+        assertThat(restored.result()).isEqualTo(draft.result());
+        assertThat(restored.candidates()).containsExactlyElementsOf(draft.candidates());
+    }
+
+    @Test
+    void atomicallyReplacesTheUsersPreviousManualDraft() {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        TravelGuideDraftCacheService service = new TravelGuideDraftCacheService(redisTemplate);
+        when(redisTemplate.execute(any(RedisScript.class), any(), any(Object[].class)))
+                .thenReturn(1L);
+
+        service.replaceManual(draft());
+
+        verify(redisTemplate).execute(any(), eq(List.of(
+                        "travel:guide:manual:user:1:draft-id", "travel:guide:draft:10")),
+                any(), eq(String.valueOf(Duration.ofHours(24).toMillis())),
+                eq("travel:guide:draft:"), eq(":refresh-used"), eq("10"));
+    }
+
+    @Test
+    void rejectsAnUnconfirmedManualDraftReplacement() {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        TravelGuideDraftCacheService service = new TravelGuideDraftCacheService(redisTemplate);
+
+        assertThatThrownBy(() -> service.replaceManual(draft()))
+                .isInstanceOf(TravelRecommendationException.class)
+                .extracting("code")
+                .isEqualTo(TravelRecommendationErrorCode.CANDIDATE_CACHE_UNAVAILABLE.code());
+    }
+
+    private TravelGuideDraft draft() {
         AiTravelGuideResult result = new AiTravelGuideResult("제목", "요약", List.of(
                 new AiTravelGuideResult.Day(1, "1일차", List.of(
                         new AiTravelGuideResult.Item("100", 1, "10:00", 60, "추천")))), "팁");
@@ -44,18 +93,6 @@ class TravelGuideDraftCacheServiceTest {
                 TransportType.CAR, CompanionType.COUPLE);
         TravelGuideDraft draft = new TravelGuideDraft(10L, 1L, request, result,
                 List.of(candidate), List.of(), true, false);
-
-        service.save(draft);
-
-        ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
-        verify(values).set(org.mockito.ArgumentMatchers.eq("travel:guide:draft:10"),
-                json.capture(), org.mockito.ArgumentMatchers.eq(Duration.ofHours(24)));
-        when(values.get("travel:guide:draft:10")).thenReturn(json.getValue());
-        TravelGuideDraft restored = service.find(10L);
-        assertThat(restored.requestId()).isEqualTo(10L);
-        assertThat(restored.request().getRegionName()).isEqualTo("완도");
-        assertThat(restored.request().getStartsOn()).isEqualTo(LocalDate.of(2026, 8, 20));
-        assertThat(restored.result()).isEqualTo(result);
-        assertThat(restored.candidates()).containsExactly(candidate);
+        return draft;
     }
 }

@@ -43,7 +43,8 @@ public class TravelGuideDraftQueryService {
                         .map(route -> route.route().durationMinutes())
                         .findFirst().orElse(null);
                 return new TravelGuideResponse.Item((short) item.order(), item.contentId(),
-                        candidate.title(), item.reason(), LocalTime.parse(item.recommendedTime()),
+                        candidate.title(), item.reason(), item.recommendedTime() == null
+                                ? null : LocalTime.parse(item.recommendedTime()),
                         item.stayMinutes(), travelMinutes, candidate.latitude(),
                         candidate.longitude(), candidate.thumbnailUrl());
             }).toList();
