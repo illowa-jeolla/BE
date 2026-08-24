@@ -1,0 +1,117 @@
+package com.example.travel.domain.gathering.entity;
+
+import com.example.travel.domain.gathering.enums.GatheringStatus;
+import com.example.travel.domain.region.entity.Region;
+import com.example.travel.domain.user.entity.User;
+import com.example.travel.global.persistence.UpdatedAtEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+
+@Getter
+@Entity
+@Table(name = "gatherings")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Gathering extends UpdatedAtEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "creator_id", nullable = false)
+    private User creator;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "region_id", nullable = false)
+    private Region region;
+
+    @Column(nullable = false, length = 150)
+    private String title;
+
+    @Column(length = 100)
+    private String concept;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "meeting_place", nullable = false, length = 255)
+    private String meetingPlace;
+
+    @Column(precision = 10, scale = 7)
+    private BigDecimal latitude;
+
+    @Column(precision = 10, scale = 7)
+    private BigDecimal longitude;
+
+    @Column(name = "starts_at", nullable = false)
+    private OffsetDateTime startsAt;
+
+    @Column(nullable = false)
+    private short capacity;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private GatheringStatus status = GatheringStatus.OPEN;
+
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
+    private Gathering(User creator, Region region, String title, short capacity,
+                      String meetingPlace, OffsetDateTime startsAt,
+                      String concept, String description) {
+        this.creator = creator;
+        this.region = region;
+        this.title = title;
+        this.capacity = capacity;
+        this.meetingPlace = meetingPlace;
+        this.startsAt = startsAt;
+        this.concept = concept;
+        this.description = description;
+        this.status = GatheringStatus.OPEN;
+    }
+
+    public static Gathering create(User creator, Region region, String title, short capacity,
+                                   String meetingPlace, OffsetDateTime startsAt,
+                                   String concept, String description) {
+        return new Gathering(creator, region, title, capacity, meetingPlace,
+                startsAt, concept, description);
+    }
+
+    public void markFull() {
+        this.status = GatheringStatus.FULL;
+    }
+
+    public void reopen() {
+        this.status = GatheringStatus.OPEN;
+    }
+
+    public void update(String title, String description, String concept,
+                       String meetingPlace, OffsetDateTime startsAt, Short capacity) {
+        if (title != null) {
+            this.title = title;
+        }
+        if (description != null) {
+            this.description = description;
+        }
+        if (concept != null) {
+            this.concept = concept;
+        }
+        if (meetingPlace != null) {
+            this.meetingPlace = meetingPlace;
+        }
+        if (startsAt != null) {
+            this.startsAt = startsAt;
+        }
+        if (capacity != null) {
+            this.capacity = capacity;
+        }
+    }
+
+    public void softDelete(OffsetDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+}

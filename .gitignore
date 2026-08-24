@@ -26,6 +26,20 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
+### Local Codex documentation ###
+SESSION_CONTEXT.md
+PRODUCTION_SECURITY_TODO.md
+API_SPEC.md
+gathering session.md
+ai session.md
+ai api_spec.md
+ai technical decisions.md
+
+### Local environment configuration ###
+.env
+.env.*
+!.env.example
+
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
