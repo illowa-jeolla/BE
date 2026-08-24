@@ -5,7 +5,7 @@ import com.example.travel.domain.ai.exception.OpenAiErrorCode;
 import com.example.travel.domain.ai.exception.OpenAiException;
 import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 class TravelAiServiceTest {
     @Mock private OpenAiClient openAiClient;
     @Mock private TravelAiPromptService promptService;
-    @Mock private TravelRecommendationRequest request;
+    @Mock private TravelRecommendationContext request;
 
     private TravelAiService service;
 

@@ -8,7 +8,7 @@ import com.example.travel.domain.travel.dto.request.ManualTravelDayRequest;
 import com.example.travel.domain.travel.dto.request.ManualTravelPlaceRequest;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
 import com.example.travel.domain.travel.dto.response.TravelGuideDraft;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
 import com.example.travel.domain.travel.exception.TravelRecommendationException;
 import com.example.travel.domain.travel.route.PlannedRouteSegment;
@@ -67,7 +67,7 @@ public class ManualTravelGuideService {
         validateDays(request);
 
         Long draftId = requestCacheService.nextId();
-        TravelRecommendationRequest context = context(draftId, userId, region, request);
+        TravelRecommendationContext context = context(draftId, userId, region, request);
         List<TravelCandidateItem> candidates = candidates(request);
         AiTravelGuideResult result = result(region, request);
         List<PlannedRouteSegment> routes = routeService.plan(context, result, candidates);
@@ -117,13 +117,13 @@ public class ManualTravelGuideService {
         }
     }
 
-    private TravelRecommendationRequest context(Long id, Long userId, Region region,
-                                                  CreateManualTravelGuideRequest request) {
+    private TravelRecommendationContext context(Long id, Long userId, Region region,
+                                                CreateManualTravelGuideRequest request) {
         var lodging = request.accommodation();
         var start = request.startLocation();
         var end = request.endLocation();
         String[] themes = request.themes().stream().map(Enum::name).sorted().toArray(String[]::new);
-        return TravelRecommendationRequest.create(id, userId, region.getId(), region.getName(),
+        return TravelRecommendationContext.create(id, userId, region.getId(), region.getName(),
                 lodging.kakaoPlaceId().trim(), lodging.name().trim(), lodging.address().trim(),
                 lodging.latitude(), lodging.longitude(), start.kakaoPlaceId().trim(),
                 start.name().trim(), start.address().trim(), start.latitude(), start.longitude(),

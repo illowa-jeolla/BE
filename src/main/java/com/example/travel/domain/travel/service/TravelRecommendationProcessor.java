@@ -4,7 +4,7 @@ import com.example.travel.domain.travel.ai.TravelAiService;
 import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
 import com.example.travel.domain.travel.dto.response.TravelGuideDraft;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.route.PlannedRouteSegment;
 import com.example.travel.domain.travel.route.TravelRouteService;
 import org.springframework.stereotype.Service;
@@ -39,7 +39,7 @@ public class TravelRecommendationProcessor {
 
     public void process(Long requestId) {
         try {
-            TravelRecommendationRequest request = requestCacheService.find(requestId);
+            TravelRecommendationContext request = requestCacheService.find(requestId);
             request.markProcessing();
             requestCacheService.save(request);
             List<TravelCandidateItem> candidates = candidateCacheService.find(requestId);
@@ -64,7 +64,7 @@ public class TravelRecommendationProcessor {
             log.error("Travel recommendation processing failed. requestId={}",
                     requestId, exception);
             try {
-                TravelRecommendationRequest request = requestCacheService.find(requestId);
+                TravelRecommendationContext request = requestCacheService.find(requestId);
                 request.markFailed();
                 requestCacheService.save(request);
             } catch (RuntimeException ignored) {

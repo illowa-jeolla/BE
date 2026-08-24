@@ -3,7 +3,7 @@ package com.example.travel.domain.travel.service;
 import com.example.travel.domain.region.entity.Region;
 import com.example.travel.domain.travel.entity.SavedTravelGuide;
 import com.example.travel.domain.travel.entity.TravelGuide;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.entity.TravelGuideCondition;
 import com.example.travel.domain.travel.entity.id.SavedTravelGuideId;
 import com.example.travel.domain.travel.dto.response.TravelGuideDraft;
@@ -17,7 +17,6 @@ import com.example.travel.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -46,7 +45,7 @@ class SavedTravelGuideServiceTest {
     @Mock private User user;
     @Mock private TravelGuide guide;
     @Mock private SavedTravelGuide savedGuide;
-    @Mock private TravelRecommendationRequest request;
+    @Mock private TravelRecommendationContext request;
     @Mock private Region region;
     @Mock private TravelGuideCondition condition;
 

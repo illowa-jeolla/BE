@@ -1,6 +1,7 @@
 package com.example.travel.domain.travel.entity;
 
 import com.example.travel.domain.travel.enums.GuideStatus;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.user.entity.User;
 import com.example.travel.global.persistence.UpdatedAtEntity;
 import jakarta.persistence.*;
@@ -49,7 +50,7 @@ public class TravelGuide extends UpdatedAtEntity {
     @Column(name = "generated_at")
     private OffsetDateTime generatedAt;
 
-    private TravelGuide(TravelRecommendationRequest request, User user, String title,
+    private TravelGuide(TravelRecommendationContext request, User user, String title,
                         String summary, String travelTip, boolean generatedByAi,
                         OffsetDateTime generatedAt) {
         this.sourceRequestId = request.getId();
@@ -63,7 +64,7 @@ public class TravelGuide extends UpdatedAtEntity {
         this.condition = TravelGuideCondition.create(this, request);
     }
 
-    public static TravelGuide ready(TravelRecommendationRequest request, User user, String title,
+    public static TravelGuide ready(TravelRecommendationContext request, User user, String title,
                                     String summary, String travelTip, boolean generatedByAi,
                                     OffsetDateTime generatedAt) {
         return new TravelGuide(request, user, title, summary, travelTip,

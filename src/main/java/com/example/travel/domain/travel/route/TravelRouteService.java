@@ -2,7 +2,7 @@ package com.example.travel.domain.travel.route;
 
 import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.enums.TransportType;
 import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
 import com.example.travel.domain.travel.exception.TravelRecommendationException;
@@ -22,8 +22,8 @@ public class TravelRouteService {
         this.directionsClient = directionsClient;
     }
 
-    public List<PlannedRouteSegment> plan(TravelRecommendationRequest request,
-            AiTravelGuideResult guide, List<TravelCandidateItem> candidates) {
+    public List<PlannedRouteSegment> plan(TravelRecommendationContext request,
+                                          AiTravelGuideResult guide, List<TravelCandidateItem> candidates) {
         Map<String, TravelCandidateItem> byId = candidates.stream().collect(
                 Collectors.toMap(TravelCandidateItem::contentId, Function.identity(),
                         (first, ignored) -> first));
@@ -55,19 +55,19 @@ public class TravelRouteService {
         return List.copyOf(segments);
     }
 
-    private RoutePoint startPoint(TravelRecommendationRequest request, int day, int lastDay) {
+    private RoutePoint startPoint(TravelRecommendationContext request, int day, int lastDay) {
         if (day == 1) return new RoutePoint(request.getStartPlaceName(),
                 request.getStartLatitude(), request.getStartLongitude());
         return lodging(request);
     }
 
-    private RoutePoint endPoint(TravelRecommendationRequest request, int day, int lastDay) {
+    private RoutePoint endPoint(TravelRecommendationContext request, int day, int lastDay) {
         if (day == lastDay) return new RoutePoint(request.getEndPlaceName(),
                 request.getEndLatitude(), request.getEndLongitude());
         return lodging(request);
     }
 
-    private RoutePoint lodging(TravelRecommendationRequest request) {
+    private RoutePoint lodging(TravelRecommendationContext request) {
         return new RoutePoint(request.getLodgingName(), request.getLodgingLatitude(),
                 request.getLodgingLongitude());
     }

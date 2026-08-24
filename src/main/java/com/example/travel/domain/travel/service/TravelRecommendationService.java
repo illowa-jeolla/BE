@@ -7,7 +7,7 @@ import com.example.travel.domain.travel.dto.request.CreateTravelRecommendationRe
 import com.example.travel.domain.travel.dto.request.RouteLocationRequest;
 import com.example.travel.domain.travel.dto.response.CreateTravelRecommendationResponse;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.enums.TravelTheme;
 import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
 import com.example.travel.domain.travel.exception.TravelRecommendationException;
@@ -88,7 +88,7 @@ public class TravelRecommendationService {
         RouteLocationRequest end = request.endLocation();
         String[] themes = request.themes().stream().map(Enum::name).sorted().toArray(String[]::new);
         Long requestId = requestCacheService.nextId();
-        TravelRecommendationRequest saved = TravelRecommendationRequest.create(
+        TravelRecommendationContext saved = TravelRecommendationContext.create(
                         requestId, userId, region.getId(), region.getName(),
                         lodging.kakaoPlaceId().trim(),
                         lodging.name().trim(),
@@ -116,7 +116,7 @@ public class TravelRecommendationService {
         if (draft.refreshResult() || draftCacheService.isRefreshUsed(draftId)) {
             throw error(TravelRecommendationErrorCode.REFRESH_ALREADY_USED);
         }
-        TravelRecommendationRequest original = draft.request();
+        TravelRecommendationContext original = draft.request();
         Set<TravelTheme> themes = Arrays.stream(original.getThemes())
                 .map(TravelTheme::valueOf)
                 .collect(Collectors.toUnmodifiableSet());
@@ -137,7 +137,7 @@ public class TravelRecommendationService {
             throw error(TravelRecommendationErrorCode.REFRESH_ALREADY_USED);
         }
 
-        TravelRecommendationRequest refreshed = original.createRefreshRequest(
+        TravelRecommendationContext refreshed = original.createRefreshRequest(
                 requestCacheService.nextId());
         requestCacheService.save(refreshed);
         candidateCacheService.save(refreshed.getId(), candidates);

@@ -2,7 +2,7 @@ package com.example.travel.domain.travel.service;
 
 import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelGuideDraft;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -16,7 +16,7 @@ class TravelGuideDraftQueryServiceTest {
     @Test
     void returnsDraftSummariesForNavigationToDetails() {
         TravelGuideDraftCacheService cacheService = mock(TravelGuideDraftCacheService.class);
-        TravelRecommendationRequest request = mock(TravelRecommendationRequest.class);
+        TravelRecommendationContext request = mock(TravelRecommendationContext.class);
         when(request.getRegionName()).thenReturn("여수");
         when(request.getStartsOn()).thenReturn(LocalDate.of(2026, 9, 1));
         when(request.getEndsOn()).thenReturn(LocalDate.of(2026, 9, 2));

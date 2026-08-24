@@ -2,6 +2,7 @@ package com.example.travel.domain.travel.entity;
 
 import com.example.travel.domain.travel.enums.CompanionType;
 import com.example.travel.domain.travel.enums.TransportType;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -45,7 +46,7 @@ public class TravelGuideCondition {
     @Enumerated(EnumType.STRING) @Column(name = "transport_type", length = 20) private TransportType transportType;
     @Enumerated(EnumType.STRING) @Column(name = "companion_type", length = 20) private CompanionType companionType;
 
-    static TravelGuideCondition create(TravelGuide guide, TravelRecommendationRequest request) {
+    static TravelGuideCondition create(TravelGuide guide, TravelRecommendationContext request) {
         TravelGuideCondition value = new TravelGuideCondition();
         value.guide = guide; value.regionId = request.getRegionId(); value.regionName = request.getRegionName();
         value.lodgingKakaoPlaceId = request.getLodgingKakaoPlaceId(); value.lodgingName = request.getLodgingName();
