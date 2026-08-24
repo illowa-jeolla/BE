@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 		"spring.datasource.driver-class-name=org.h2.Driver",
 		"spring.datasource.username=sa",
 		"spring.datasource.password=",
+		"spring.flyway.locations=classpath:db/test-migration",
 		"spring.jpa.hibernate.ddl-auto=create-drop"
 })
 class TravelApplicationTests {

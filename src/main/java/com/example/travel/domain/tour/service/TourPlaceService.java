@@ -5,6 +5,8 @@ import com.example.travel.domain.tour.dto.TourPlaceDetailResponse;
 import com.example.travel.domain.tour.dto.TourPlaceMapResponse;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Service
 public class TourPlaceService {
     private final TourInfoClient tourInfoClient;
@@ -19,5 +21,11 @@ public class TourPlaceService {
 
     public TourPlaceDetailResponse findPlaceDetail(String contentId) {
         return tourInfoClient.findPlaceDetail(contentId);
+    }
+
+    public TourPlaceMapResponse findNearbyPlaces(BigDecimal latitude, BigDecimal longitude,
+                                                 int radius, int pageNo, int numOfRows) {
+        return tourInfoClient.findPlacesNearby(
+                latitude, longitude, radius, pageNo, numOfRows);
     }
 }

@@ -47,8 +47,22 @@ gathering:
     cron: "0 0 0 * * MON"
     zone: Asia/Seoul
 
+travel:
+  saved-guide-cleanup:
+    cron: "0 0 5 * * MON"
+    zone: Asia/Seoul
+
 tour-info:
   service-key: ${TOUR_INFO_KOREAN_API:}
   base-url: https://apis.data.go.kr/B551011/KorService2
   mobile-os: ETC
   mobile-app: tour_gong
+
+kakao-map:
+  rest-api-key: ${KAKAO_MAP_REST_API_KEY:${KAKAO_CLIENT_ID}}
+  base-url: https://dapi.kakao.com
+
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  model: ${OPENAI_MODEL:gpt-5.6-luna}
+  base-url: https://api.openai.com

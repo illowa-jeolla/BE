@@ -31,4 +31,25 @@ public class SavedTravelGuide {
     @Column(name = "saved_at", nullable = false, insertable = false, updatable = false)
     @ColumnDefault("CURRENT_TIMESTAMP")
     private OffsetDateTime savedAt;
+
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
+    private SavedTravelGuide(User user, TravelGuide guide) {
+        this.id = new SavedTravelGuideId(user.getId(), guide.getId());
+        this.user = user;
+        this.guide = guide;
+    }
+
+    public static SavedTravelGuide create(User user, TravelGuide guide) {
+        return new SavedTravelGuide(user, guide);
+    }
+
+    public void restore() {
+        this.deletedAt = null;
+    }
+
+    public void delete(OffsetDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
 }

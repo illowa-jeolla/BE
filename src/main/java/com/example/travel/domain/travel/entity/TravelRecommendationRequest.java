@@ -1,69 +1,98 @@
 package com.example.travel.domain.travel.entity;
 
-import com.example.travel.domain.region.entity.Region;
 import com.example.travel.domain.travel.enums.CompanionType;
 import com.example.travel.domain.travel.enums.RecommendationStatus;
 import com.example.travel.domain.travel.enums.TransportType;
-import com.example.travel.domain.user.entity.User;
-import com.example.travel.global.persistence.CreatedAtEntity;
-import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Getter
-@Entity
-@Table(name = "travel_recommendation_requests")
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class TravelRecommendationRequest extends CreatedAtEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class TravelRecommendationRequest {
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "region_id")
-    private Region region;
-
-    @Column(name = "lodging_name", length = 150)
+    private Long userId;
+    private Long regionId;
+    private String regionName;
+    private String lodgingKakaoPlaceId;
     private String lodgingName;
-
-    @Column(name = "lodging_address", length = 255)
     private String lodgingAddress;
-
-    @Column(name = "lodging_latitude", precision = 10, scale = 7)
     private BigDecimal lodgingLatitude;
-
-    @Column(name = "lodging_longitude", precision = 10, scale = 7)
     private BigDecimal lodgingLongitude;
-
-    @Column(name = "starts_on", nullable = false)
+    private String startPlaceId;
+    private String startPlaceName;
+    private String startPlaceAddress;
+    private BigDecimal startLatitude;
+    private BigDecimal startLongitude;
+    private String endPlaceId;
+    private String endPlaceName;
+    private String endPlaceAddress;
+    private BigDecimal endLatitude;
+    private BigDecimal endLongitude;
     private LocalDate startsOn;
-
-    @Column(name = "ends_on", nullable = false)
     private LocalDate endsOn;
-
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(nullable = false, columnDefinition = "text[]")
-    private String[] themes = new String[0];
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "transport_type", length = 20)
+    private String[] themes;
+    private Integer[] dailyPlaceCounts;
     private TransportType transportType;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "companion_type", length = 20)
     private CompanionType companionType;
+    private RecommendationStatus status;
+    private boolean refreshRequest;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private RecommendationStatus status = RecommendationStatus.PENDING;
+    private TravelRecommendationRequest(Long id, Long userId, Long regionId, String regionName,
+            String lodgingKakaoPlaceId, String lodgingName, String lodgingAddress,
+            BigDecimal lodgingLatitude, BigDecimal lodgingLongitude, String startPlaceId,
+            String startPlaceName, String startPlaceAddress, BigDecimal startLatitude,
+            BigDecimal startLongitude, String endPlaceId, String endPlaceName,
+            String endPlaceAddress, BigDecimal endLatitude, BigDecimal endLongitude,
+            LocalDate startsOn, LocalDate endsOn, String[] themes, Integer[] dailyPlaceCounts,
+            TransportType transportType, CompanionType companionType, boolean refreshRequest) {
+        this.id = id; this.userId = userId; this.regionId = regionId; this.regionName = regionName;
+        this.lodgingKakaoPlaceId = lodgingKakaoPlaceId; this.lodgingName = lodgingName;
+        this.lodgingAddress = lodgingAddress; this.lodgingLatitude = lodgingLatitude;
+        this.lodgingLongitude = lodgingLongitude; this.startPlaceId = startPlaceId;
+        this.startPlaceName = startPlaceName; this.startPlaceAddress = startPlaceAddress;
+        this.startLatitude = startLatitude; this.startLongitude = startLongitude;
+        this.endPlaceId = endPlaceId; this.endPlaceName = endPlaceName;
+        this.endPlaceAddress = endPlaceAddress; this.endLatitude = endLatitude;
+        this.endLongitude = endLongitude; this.startsOn = startsOn; this.endsOn = endsOn;
+        this.themes = themes.clone(); this.dailyPlaceCounts = dailyPlaceCounts.clone();
+        this.transportType = transportType; this.companionType = companionType;
+        this.status = RecommendationStatus.PENDING; this.refreshRequest = refreshRequest;
+    }
+
+    public static TravelRecommendationRequest create(Long id, Long userId, Long regionId,
+            String regionName, String lodgingKakaoPlaceId, String lodgingName,
+            String lodgingAddress, BigDecimal lodgingLatitude, BigDecimal lodgingLongitude,
+            String startPlaceId, String startPlaceName, String startPlaceAddress,
+            BigDecimal startLatitude, BigDecimal startLongitude, String endPlaceId,
+            String endPlaceName, String endPlaceAddress, BigDecimal endLatitude,
+            BigDecimal endLongitude, LocalDate startsOn, LocalDate endsOn, String[] themes,
+            Integer[] dailyPlaceCounts, TransportType transportType, CompanionType companionType) {
+        return new TravelRecommendationRequest(id, userId, regionId, regionName,
+                lodgingKakaoPlaceId, lodgingName, lodgingAddress, lodgingLatitude,
+                lodgingLongitude, startPlaceId, startPlaceName, startPlaceAddress,
+                startLatitude, startLongitude, endPlaceId, endPlaceName, endPlaceAddress,
+                endLatitude, endLongitude, startsOn, endsOn, themes, dailyPlaceCounts,
+                transportType, companionType, false);
+    }
+
+    public TravelRecommendationRequest createRefreshRequest(Long newId) {
+        return new TravelRecommendationRequest(newId, userId, regionId, regionName,
+                lodgingKakaoPlaceId, lodgingName, lodgingAddress, lodgingLatitude,
+                lodgingLongitude, startPlaceId, startPlaceName, startPlaceAddress,
+                startLatitude, startLongitude, endPlaceId, endPlaceName, endPlaceAddress,
+                endLatitude, endLongitude, startsOn, endsOn, themes, dailyPlaceCounts,
+                transportType, companionType, true);
+    }
+
+    public String[] getThemes() { return themes.clone(); }
+    public Integer[] getDailyPlaceCounts() { return dailyPlaceCounts.clone(); }
+    public void markProcessing() { status = RecommendationStatus.PROCESSING; }
+    public void markCompleted() { status = RecommendationStatus.COMPLETED; }
+    public void markFailed() { status = RecommendationStatus.FAILED; }
 }

@@ -8,6 +8,7 @@ import com.example.travel.domain.tour.exception.TourException;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,9 +61,60 @@ class TourInfoClientTest {
         assertThat(response.items().get(0).contentTypeId()).isEqualTo("12");
         assertThat(response.items().get(0).mapX()).isEqualByComparingTo("127.153");
         assertThat(response.items().get(0).mapY()).isEqualByComparingTo("35.815");
+        assertThat(response.items().get(0).distanceMeters()).isNull();
         assertThat(requestedUris.get(0).toString())
                 .contains("/locationBasedList2?", "MobileOS=ETC", "MobileApp=tour_gong")
                 .doesNotContain("/locationBasedList2/locationBasedList2");
+    }
+
+    @Test
+    void findPlacesNearbyUsesLodgingCoordinatesAndClampsRadius() {
+        List<URI> requestedUris = new ArrayList<>();
+        TourInfoClient client = new TourInfoClient(properties, uri -> {
+            requestedUris.add(uri);
+            return """
+                    {
+                      "response": {
+                        "header": { "resultCode": "0000" },
+                        "body": {
+                          "pageNo": 1,
+                          "numOfRows": 10,
+                          "totalCount": 1,
+                          "items": {
+                            "item": {
+                              "contentid": "1",
+                              "contenttypeid": "12",
+                              "title": "오동도",
+                              "mapx": "127.766",
+                              "mapy": "34.744",
+                              "dist": "2450.7"
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """;
+        });
+
+        TourPlaceMapResponse response = client.findPlacesNearby(
+                new BigDecimal("34.753"), new BigDecimal("127.748"),
+                50_000, 1, 10);
+
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().get(0).distanceMeters()).isEqualTo(2450);
+        assertThat(requestedUris.get(0).toString())
+                .contains("mapX=127.748", "mapY=34.753", "radius=20000");
+    }
+
+    @Test
+    void findPlacesNearbyRejectsInvalidCoordinates() {
+        TourInfoClient client = new TourInfoClient(properties, uri -> "{}");
+
+        assertThatThrownBy(() -> client.findPlacesNearby(
+                new BigDecimal("91"), new BigDecimal("127"), 3_000, 1, 10))
+                .isInstanceOf(TourException.class)
+                .extracting("code")
+                .isEqualTo(TourErrorCode.INVALID_COORDINATES.code());
     }
 
     @Test
