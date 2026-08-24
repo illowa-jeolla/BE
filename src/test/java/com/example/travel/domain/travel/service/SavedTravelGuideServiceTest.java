@@ -202,11 +202,11 @@ class SavedTravelGuideServiceTest {
             assertThat(response.saved()).isTrue();
             verify(savedGuideRepository).save(
                     org.mockito.ArgumentMatchers.any(SavedTravelGuide.class));
-            verify(draftCacheService, never()).delete(30L);
+            verify(draftCacheService, never()).delete(30L, 1L);
 
             TransactionSynchronizationManager.getSynchronizations()
                     .forEach(synchronization -> synchronization.afterCommit());
-            verify(draftCacheService).delete(30L);
+            verify(draftCacheService).delete(30L, 1L);
         } finally {
             TransactionSynchronizationManager.clearSynchronization();
         }

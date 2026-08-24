@@ -3,6 +3,7 @@ package com.example.travel.domain.travel.service;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
 import com.example.travel.domain.travel.dto.response.TravelGuideDraft;
 import com.example.travel.domain.travel.dto.response.TravelGuideResponse;
+import com.example.travel.domain.travel.dto.response.TravelGuideDraftSummaryResponse;
 import com.example.travel.domain.travel.enums.GuideStatus;
 import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
 import com.example.travel.domain.travel.exception.TravelRecommendationException;
@@ -10,6 +11,7 @@ import com.example.travel.domain.travel.route.PlannedRouteSegment;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -60,6 +62,15 @@ public class TravelGuideDraftQueryService {
         return new TravelGuideResponse(draftId, null, draft.result().title(), draft.result().summary(),
                 draft.result().travelTip(), draft.generatedByAi(), refreshAvailable,
                 GuideStatus.READY, days);
+    }
+
+    public List<TravelGuideDraftSummaryResponse> findAll(Long userId) {
+        return draftCacheService.findAllByUserId(userId).stream()
+                .map(draft -> new TravelGuideDraftSummaryResponse(
+                        draft.requestId(), draft.result().title(),
+                        draft.request().getRegionName(), draft.request().getStartsOn(),
+                        draft.request().getEndsOn(), draft.generatedByAi()))
+                .toList();
     }
 
     private TravelGuideResponse.RouteSegment routeResponse(PlannedRouteSegment route) {

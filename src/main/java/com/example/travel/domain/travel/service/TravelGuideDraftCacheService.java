@@ -11,24 +11,48 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class TravelGuideDraftCacheService {
     private static final String KEY_PREFIX = "travel:guide:draft:";
     private static final String REFRESH_SUFFIX = ":refresh-used";
     private static final String MANUAL_POINTER_PREFIX = "travel:guide:manual:user:";
+    private static final String USER_DRAFT_INDEX_PREFIX = "travel:guide:user:";
+    private static final String USER_DRAFT_INDEX_SUFFIX = ":drafts";
     private static final Duration TTL = Duration.ofHours(24);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
+    private static final DefaultRedisScript<Long> SAVE_SCRIPT =
+            new DefaultRedisScript<>("""
+                    redis.call('SET', KEYS[1], ARGV[1], 'PX', ARGV[2])
+                    redis.call('ZADD', KEYS[2], ARGV[3], ARGV[3])
+                    redis.call('PEXPIRE', KEYS[2], ARGV[2])
+                    return 1
+                    """, Long.class);
     private static final DefaultRedisScript<Long> REPLACE_MANUAL_SCRIPT =
             new DefaultRedisScript<>("""
                     local oldDraftId = redis.call('GET', KEYS[1])
                     if oldDraftId then
                         redis.call('DEL', ARGV[3] .. oldDraftId)
                         redis.call('DEL', ARGV[3] .. oldDraftId .. ARGV[4])
+                        redis.call('ZREM', KEYS[3], oldDraftId)
                     end
                     redis.call('SET', KEYS[2], ARGV[1], 'PX', ARGV[2])
                     redis.call('SET', KEYS[1], ARGV[5], 'PX', ARGV[2])
+                    redis.call('ZADD', KEYS[3], ARGV[5], ARGV[5])
+                    redis.call('PEXPIRE', KEYS[3], ARGV[2])
+                    return 1
+                    """, Long.class);
+    private static final DefaultRedisScript<Long> DELETE_SCRIPT =
+            new DefaultRedisScript<>("""
+                    redis.call('DEL', KEYS[1], KEYS[2])
+                    redis.call('ZREM', KEYS[3], ARGV[1])
+                    if redis.call('GET', KEYS[4]) == ARGV[1] then
+                        redis.call('DEL', KEYS[4])
+                    end
                     return 1
                     """, Long.class);
 
@@ -40,8 +64,11 @@ public class TravelGuideDraftCacheService {
 
     public void save(TravelGuideDraft draft) {
         try {
-            redisTemplate.opsForValue().set(key(draft.requestId()),
-                    OBJECT_MAPPER.writeValueAsString(draft), TTL);
+            Long result = redisTemplate.execute(SAVE_SCRIPT,
+                    List.of(key(draft.requestId()), userDraftIndexKey(draft.userId())),
+                    OBJECT_MAPPER.writeValueAsString(draft), String.valueOf(TTL.toMillis()),
+                    String.valueOf(draft.requestId()));
+            requireSuccess(result);
         } catch (JsonProcessingException | DataAccessException exception) {
             throw unavailable(exception);
         }
@@ -51,12 +78,11 @@ public class TravelGuideDraftCacheService {
         try {
             String json = OBJECT_MAPPER.writeValueAsString(draft);
             Long result = redisTemplate.execute(REPLACE_MANUAL_SCRIPT,
-                    java.util.List.of(manualPointerKey(draft.userId()), key(draft.requestId())),
+                    List.of(manualPointerKey(draft.userId()), key(draft.requestId()),
+                            userDraftIndexKey(draft.userId())),
                     json, String.valueOf(TTL.toMillis()), KEY_PREFIX, REFRESH_SUFFIX,
                     String.valueOf(draft.requestId()));
-            if (!Long.valueOf(1L).equals(result)) {
-                throw unavailable();
-            }
+            requireSuccess(result);
         } catch (JsonProcessingException | DataAccessException exception) {
             throw unavailable(exception);
         }
@@ -73,6 +99,37 @@ public class TravelGuideDraftCacheService {
             return value == null ? Optional.empty()
                     : Optional.of(OBJECT_MAPPER.readValue(value, TravelGuideDraft.class));
         } catch (JsonProcessingException | DataAccessException exception) {
+            throw unavailable(exception);
+        }
+    }
+
+    public List<TravelGuideDraft> findAllByUserId(Long userId) {
+        try {
+            String indexKey = userDraftIndexKey(userId);
+            Set<String> draftIds = redisTemplate.opsForZSet()
+                    .reverseRange(indexKey, 0, -1);
+            if (draftIds == null || draftIds.isEmpty()) return List.of();
+
+            List<TravelGuideDraft> drafts = new ArrayList<>();
+            List<String> staleIds = new ArrayList<>();
+            for (String value : draftIds) {
+                try {
+                    Long draftId = Long.valueOf(value);
+                    Optional<TravelGuideDraft> draft = findOptional(draftId);
+                    if (draft.isPresent() && draft.get().userId().equals(userId)) {
+                        drafts.add(draft.get());
+                    } else {
+                        staleIds.add(value);
+                    }
+                } catch (NumberFormatException exception) {
+                    staleIds.add(value);
+                }
+            }
+            if (!staleIds.isEmpty()) {
+                redisTemplate.opsForZSet().remove(indexKey, staleIds.toArray());
+            }
+            return List.copyOf(drafts);
+        } catch (DataAccessException exception) {
             throw unavailable(exception);
         }
     }
@@ -95,9 +152,13 @@ public class TravelGuideDraftCacheService {
         }
     }
 
-    public void delete(Long draftId) {
+    public void delete(Long draftId, Long userId) {
         try {
-            redisTemplate.delete(java.util.List.of(key(draftId), refreshKey(draftId)));
+            Long result = redisTemplate.execute(DELETE_SCRIPT,
+                    List.of(key(draftId), refreshKey(draftId), userDraftIndexKey(userId),
+                            manualPointerKey(userId)),
+                    String.valueOf(draftId));
+            requireSuccess(result);
         } catch (DataAccessException exception) {
             throw unavailable();
         }
@@ -113,6 +174,14 @@ public class TravelGuideDraftCacheService {
 
     private String manualPointerKey(Long userId) {
         return MANUAL_POINTER_PREFIX + userId + ":draft-id";
+    }
+
+    private String userDraftIndexKey(Long userId) {
+        return USER_DRAFT_INDEX_PREFIX + userId + USER_DRAFT_INDEX_SUFFIX;
+    }
+
+    private void requireSuccess(Long result) {
+        if (!Long.valueOf(1L).equals(result)) throw unavailable();
     }
 
     private TravelRecommendationException unavailable() {

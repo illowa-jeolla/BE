@@ -6,6 +6,7 @@ import com.example.travel.domain.travel.dto.response.DeletedSavedTravelGuideResp
 import com.example.travel.domain.travel.dto.response.SavedTravelGuideResponse;
 import com.example.travel.domain.travel.dto.response.TravelGuideResponse;
 import com.example.travel.domain.travel.dto.response.TravelGuideSaveResponse;
+import com.example.travel.domain.travel.dto.response.TravelGuideDraftSummaryResponse;
 import com.example.travel.domain.travel.dto.response.ManualTravelPlacePageResponse;
 import com.example.travel.domain.travel.service.ManualTravelPlaceService;
 import com.example.travel.domain.travel.service.ManualTravelGuideService;
@@ -83,6 +84,13 @@ public class TravelGuideController {
             Authentication authentication, @PathVariable Long draftId) {
         return ResponseEntity.ok(ApiResponse.success(
                 draftQueryService.find((Long) authentication.getPrincipal(), draftId)));
+    }
+
+    @GetMapping("/drafts")
+    public ResponseEntity<ApiResponse<List<TravelGuideDraftSummaryResponse>>> drafts(
+            Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(
+                draftQueryService.findAll((Long) authentication.getPrincipal())));
     }
 
     @GetMapping("/saved")

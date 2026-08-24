@@ -10,12 +10,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.LinkedHashSet;
 import com.example.travel.domain.travel.enums.TransportType;
 import com.example.travel.domain.travel.enums.CompanionType;
 
@@ -34,14 +36,17 @@ class TravelGuideDraftCacheServiceTest {
         @SuppressWarnings("unchecked")
         ValueOperations<String, String> values = mock(ValueOperations.class);
         when(redisTemplate.opsForValue()).thenReturn(values);
+        when(redisTemplate.execute(any(RedisScript.class), any(), any(Object[].class)))
+                .thenReturn(1L);
         TravelGuideDraftCacheService service = new TravelGuideDraftCacheService(redisTemplate);
         TravelGuideDraft draft = draft();
 
         service.save(draft);
 
         ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
-        verify(values).set(org.mockito.ArgumentMatchers.eq("travel:guide:draft:10"),
-                json.capture(), org.mockito.ArgumentMatchers.eq(Duration.ofHours(24)));
+        verify(redisTemplate).execute(any(), eq(List.of(
+                        "travel:guide:draft:10", "travel:guide:user:1:drafts")),
+                json.capture(), eq(String.valueOf(Duration.ofHours(24).toMillis())), eq("10"));
         when(values.get("travel:guide:draft:10")).thenReturn(json.getValue());
         TravelGuideDraft restored = service.find(10L);
         assertThat(restored.requestId()).isEqualTo(10L);
@@ -61,9 +66,37 @@ class TravelGuideDraftCacheServiceTest {
         service.replaceManual(draft());
 
         verify(redisTemplate).execute(any(), eq(List.of(
-                        "travel:guide:manual:user:1:draft-id", "travel:guide:draft:10")),
+                        "travel:guide:manual:user:1:draft-id", "travel:guide:draft:10",
+                        "travel:guide:user:1:drafts")),
                 any(), eq(String.valueOf(Duration.ofHours(24).toMillis())),
                 eq("travel:guide:draft:"), eq(":refresh-used"), eq("10"));
+    }
+
+    @Test
+    void returnsUsersDraftsNewestFirstAndRemovesStaleIndexEntries() {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        @SuppressWarnings("unchecked")
+        ValueOperations<String, String> values = mock(ValueOperations.class);
+        @SuppressWarnings("unchecked")
+        ZSetOperations<String, String> sortedSets = mock(ZSetOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(values);
+        when(redisTemplate.opsForZSet()).thenReturn(sortedSets);
+        when(redisTemplate.execute(any(RedisScript.class), any(), any(Object[].class)))
+                .thenReturn(1L);
+        TravelGuideDraftCacheService service = new TravelGuideDraftCacheService(redisTemplate);
+        ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+        service.save(draft());
+        verify(redisTemplate).execute(any(), eq(List.of(
+                        "travel:guide:draft:10", "travel:guide:user:1:drafts")),
+                json.capture(), any(), any());
+        when(sortedSets.reverseRange("travel:guide:user:1:drafts", 0, -1))
+                .thenReturn(new LinkedHashSet<>(List.of("10", "999", "invalid")));
+        when(values.get("travel:guide:draft:10")).thenReturn(json.getValue());
+
+        List<TravelGuideDraft> result = service.findAllByUserId(1L);
+
+        assertThat(result).extracting(TravelGuideDraft::requestId).containsExactly(10L);
+        verify(sortedSets).remove("travel:guide:user:1:drafts", "999", "invalid");
     }
 
     @Test

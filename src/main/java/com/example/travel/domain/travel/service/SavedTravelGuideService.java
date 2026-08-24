@@ -81,7 +81,7 @@ public class SavedTravelGuideService {
                 .orElseThrow(() -> new TravelRecommendationException(
                         TravelRecommendationErrorCode.GUIDE_NOT_FOUND));
         saveRelation(userId, guide);
-        deleteDraftAfterCommit(draftId);
+        deleteDraftAfterCommit(draftId, userId);
         return new TravelGuideSaveResponse(guideId, true);
     }
 
@@ -144,10 +144,10 @@ public class SavedTravelGuideService {
         savedGuideRepository.save(SavedTravelGuide.create(user, guide));
     }
 
-    private void deleteDraftAfterCommit(Long draftId) {
+    private void deleteDraftAfterCommit(Long draftId, Long userId) {
         Runnable cleanup = () -> {
             try {
-                draftCacheService.delete(draftId);
+                draftCacheService.delete(draftId, userId);
             } catch (RuntimeException exception) {
                 log.warn("영구 저장 후 Redis draft 삭제에 실패했습니다. TTL 만료 시 재정리됩니다. draftId={}",
                         draftId, exception);
