@@ -4,6 +4,8 @@ import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
 import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
 import com.example.travel.domain.travel.enums.TransportType;
+import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
+import com.example.travel.domain.travel.exception.TravelRecommendationException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -23,7 +25,8 @@ public class TravelRouteService {
     public List<PlannedRouteSegment> plan(TravelRecommendationRequest request,
             AiTravelGuideResult guide, List<TravelCandidateItem> candidates) {
         Map<String, TravelCandidateItem> byId = candidates.stream().collect(
-                Collectors.toMap(TravelCandidateItem::contentId, Function.identity()));
+                Collectors.toMap(TravelCandidateItem::contentId, Function.identity(),
+                        (first, ignored) -> first));
         int lastDay = guide.days().size();
         List<PlannedRouteSegment> segments = new ArrayList<>();
         for (AiTravelGuideResult.Day day : guide.days()) {
@@ -31,6 +34,10 @@ public class TravelRouteService {
             List<RoutePoint> waypoints = new ArrayList<>();
             for (AiTravelGuideResult.Item item : day.items()) {
                 TravelCandidateItem candidate = byId.get(item.contentId());
+                if (candidate == null) {
+                    throw new TravelRecommendationException(
+                            TravelRecommendationErrorCode.INVALID_AI_PLACE_ID);
+                }
                 waypoints.add(new RoutePoint(candidate.title(), candidate.latitude(), candidate.longitude()));
             }
             RoutePoint destination = endPoint(request, day.dayNumber(), lastDay);

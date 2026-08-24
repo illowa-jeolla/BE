@@ -72,13 +72,13 @@ public class TravelRecommendationService {
         validateRouteLocationScope(region, request.startLocation());
         validateRouteLocationScope(region, request.endLocation());
 
+        int requestedPlaces = request.dailyPlaceCounts().stream().mapToInt(Integer::intValue).sum();
         List<TravelCandidateItem> candidates = candidateService.findCandidates(
                 request.accommodation().latitude(), request.accommodation().longitude(),
-                request.themes(), request.transportType());
+                request.themes(), request.transportType(), requestedPlaces, Set.of());
         if (candidates.isEmpty()) {
             throw error(TravelRecommendationErrorCode.NO_CANDIDATES);
         }
-        int requestedPlaces = request.dailyPlaceCounts().stream().mapToInt(Integer::intValue).sum();
         if (candidates.size() < requestedPlaces) {
             throw error(TravelRecommendationErrorCode.INSUFFICIENT_CANDIDATES);
         }
@@ -124,14 +124,12 @@ public class TravelRecommendationService {
                 .flatMap(day -> day.items().stream())
                 .map(item -> item.contentId())
                 .collect(Collectors.toUnmodifiableSet());
-        List<TravelCandidateItem> candidates = candidateService.findCandidates(
-                        original.getLodgingLatitude(), original.getLodgingLongitude(), themes,
-                        original.getTransportType()).stream()
-                .filter(candidate -> !excludedContentIds.contains(candidate.contentId()))
-                .toList();
         int requestedPlaces = Arrays.stream(original.getDailyPlaceCounts())
                 .mapToInt(Integer::intValue)
                 .sum();
+        List<TravelCandidateItem> candidates = candidateService.findCandidates(
+                original.getLodgingLatitude(), original.getLodgingLongitude(), themes,
+                original.getTransportType(), requestedPlaces, excludedContentIds);
         if (candidates.size() < requestedPlaces) {
             throw error(TravelRecommendationErrorCode.REFRESH_INSUFFICIENT_CANDIDATES);
         }

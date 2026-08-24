@@ -22,7 +22,7 @@ public record CreateTravelRecommendationRequest(
         @NotNull @Valid AccommodationRequest accommodation,
         @NotNull @Valid RouteLocationRequest startLocation,
         @NotNull @Valid RouteLocationRequest endLocation,
-        @NotEmpty @Size(max = 4) Set<TravelTheme> themes,
+        @NotEmpty @Size(max = 4) Set<@NotNull TravelTheme> themes,
         @NotEmpty @Size(max = 7) List<@NotNull @Min(1) @Max(5) Integer> dailyPlaceCounts,
         @NotNull TransportType transportType,
         @NotNull CompanionType companionType

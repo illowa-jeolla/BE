@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDate;
 import java.time.Clock;
@@ -193,12 +194,22 @@ class SavedTravelGuideServiceTest {
         when(savedGuideRepository.findById(new SavedTravelGuideId(1L, 40L)))
                 .thenReturn(Optional.empty());
 
-        var response = service.saveDraft(1L, 30L);
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            var response = service.saveDraft(1L, 30L);
 
-        assertThat(response.guideId()).isEqualTo(40L);
-        assertThat(response.saved()).isTrue();
-        verify(savedGuideRepository).save(org.mockito.ArgumentMatchers.any(SavedTravelGuide.class));
-        verify(draftCacheService).delete(30L);
+            assertThat(response.guideId()).isEqualTo(40L);
+            assertThat(response.saved()).isTrue();
+            verify(savedGuideRepository).save(
+                    org.mockito.ArgumentMatchers.any(SavedTravelGuide.class));
+            verify(draftCacheService, never()).delete(30L);
+
+            TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(synchronization -> synchronization.afterCommit());
+            verify(draftCacheService).delete(30L);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test

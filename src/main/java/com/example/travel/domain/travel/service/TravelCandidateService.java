@@ -10,14 +10,16 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 @Service
 public class TravelCandidateService {
     private static final int SEARCH_RADIUS_METERS = 20_000;
-    private static final int MAX_CANDIDATES = 30;
+    private static final int PAGE_SIZE = 30;
 
     private final TourPlaceService tourPlaceService;
 
@@ -27,12 +29,27 @@ public class TravelCandidateService {
 
     public List<TravelCandidateItem> findCandidates(BigDecimal latitude, BigDecimal longitude,
                                                      Set<TravelTheme> themes,
-                                                     TransportType transportType) {
-        TourPlaceMapResponse response = tourPlaceService.findNearbyPlaces(
-                latitude, longitude, SEARCH_RADIUS_METERS, 1, MAX_CANDIDATES);
+                                                     TransportType transportType,
+                                                     int requestedPlaces,
+                                                     Set<String> excludedContentIds) {
+        Map<String, TourPlaceItem> usablePlaces = new LinkedHashMap<>();
+        int pageNo = 1;
+        while (true) {
+            TourPlaceMapResponse response = tourPlaceService.findNearbyPlaces(
+                    latitude, longitude, SEARCH_RADIUS_METERS, pageNo, PAGE_SIZE);
+            response.items().stream()
+                    .filter(this::hasUsableLocation)
+                    .filter(place -> !excludedContentIds.contains(place.contentId()))
+                    .forEach(place -> usablePlaces.putIfAbsent(place.contentId(), place));
 
-        return response.items().stream()
-                .filter(this::hasUsableLocation)
+            boolean enoughCandidates = usablePlaces.size() >= requestedPlaces;
+            boolean lastPage = response.items().isEmpty()
+                    || (long) pageNo * PAGE_SIZE >= response.totalCount();
+            if (enoughCandidates || lastPage) break;
+            pageNo++;
+        }
+
+        return usablePlaces.values().stream()
                 .map(place -> toCandidate(place, themes, transportType))
                 .sorted(Comparator.comparingInt(TravelCandidateItem::baseScore).reversed()
                         .thenComparing(item -> item.distanceMeters() == null

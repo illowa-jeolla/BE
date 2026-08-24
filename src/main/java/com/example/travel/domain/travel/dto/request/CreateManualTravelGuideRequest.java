@@ -22,10 +22,10 @@ public record CreateManualTravelGuideRequest(
         @NotNull @Valid AccommodationRequest accommodation,
         @NotNull @Valid RouteLocationRequest startLocation,
         @NotNull @Valid RouteLocationRequest endLocation,
-        @NotEmpty @Size(max = 4) Set<TravelTheme> themes,
+        @NotEmpty @Size(max = 4) Set<@NotNull TravelTheme> themes,
         @NotEmpty @Size(max = 7) List<@NotNull @Min(1) @Max(5) Integer> dailyPlaceCounts,
         @NotNull TransportType transportType,
         @NotNull CompanionType companionType,
         @Size(max = 200) String title,
-        @NotEmpty @Size(max = 7) List<@Valid ManualTravelDayRequest> days
+        @NotEmpty @Size(max = 7) List<@NotNull @Valid ManualTravelDayRequest> days
 ) {}

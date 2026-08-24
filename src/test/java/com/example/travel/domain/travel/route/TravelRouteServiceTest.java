@@ -4,6 +4,8 @@ import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
 import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
 import com.example.travel.domain.travel.enums.TransportType;
+import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
+import com.example.travel.domain.travel.exception.TravelRecommendationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -13,6 +15,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.times;
@@ -76,6 +79,18 @@ class TravelRouteServiceTest {
         assertThat(routes).extracting(route -> route.from().name() + "->" + route.to().name())
                 .containsExactly("출발지->A", "A->도착지");
         verify(client).directions(any(), anyList(), any());
+    }
+
+    @Test
+    void rejectsGuideItemsMissingFromCandidates() {
+        AiTravelGuideResult guide = new AiTravelGuideResult("제목", "요약",
+                List.of(day(1, "missing")), "팁");
+
+        assertThatThrownBy(() -> new TravelRouteService(client)
+                .plan(request, guide, List.of()))
+                .isInstanceOf(TravelRecommendationException.class)
+                .extracting("code")
+                .isEqualTo(TravelRecommendationErrorCode.INVALID_AI_PLACE_ID.code());
     }
 
     private AiTravelGuideResult.Day day(int number, String id) {

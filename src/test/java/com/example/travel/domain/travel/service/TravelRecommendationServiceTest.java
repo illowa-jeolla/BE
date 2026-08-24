@@ -40,6 +40,8 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -79,7 +81,7 @@ class TravelRecommendationServiceTest {
                         new BigDecimal("34.32"), new BigDecimal("126.76"), 2000, 70),
                 new TravelCandidateItem("102", "완도수목원", "주소", null,
                         new BigDecimal("34.33"), new BigDecimal("126.77"), 3000, 60));
-        when(candidateService.findCandidates(any(), any(), any(), any()))
+        when(candidateService.findCandidates(any(), any(), any(), any(), anyInt(), any()))
                 .thenReturn(candidates);
         when(requestCacheService.nextId()).thenReturn(10L);
 
@@ -155,8 +157,8 @@ class TravelRecommendationServiceTest {
         when(original.getDailyPlaceCounts()).thenReturn(new Integer[]{1});
         when(requestCacheService.nextId()).thenReturn(20L);
         when(original.createRefreshRequest(20L)).thenReturn(refreshed);
-        when(candidateService.findCandidates(any(), any(), any(), any())).thenReturn(
-                List.of(candidate("old-1"), candidate("new-1")));
+        when(candidateService.findCandidates(any(), any(), any(), any(), anyInt(), any())).thenReturn(
+                List.of(candidate("new-1")));
         when(draftCacheService.useRefresh(10L)).thenReturn(true);
         when(refreshed.getId()).thenReturn(20L);
         when(refreshed.getStatus()).thenReturn(RecommendationStatus.PENDING);
@@ -165,6 +167,8 @@ class TravelRecommendationServiceTest {
 
         assertThat(response.candidates()).extracting(TravelCandidateItem::contentId)
                 .containsExactly("new-1");
+        verify(candidateService).findCandidates(any(), any(), any(), any(), eq(1),
+                eq(Set.of("old-1")));
         verify(draftCacheService).useRefresh(10L);
         verify(candidateCacheService).save(20L, response.candidates());
     }

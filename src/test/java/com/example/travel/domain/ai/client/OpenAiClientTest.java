@@ -60,6 +60,18 @@ class OpenAiClientTest {
     }
 
     @Test
+    void rejectsBlankBaseUrlWithoutBuildingTheHttpTransport() {
+        OpenAiClient client = new OpenAiClient(
+                new OpenAiProperties("test-key", "gpt-test", " "));
+
+        assertThatThrownBy(() -> client.generateStructured("i", "d",
+                OBJECT_MAPPER.createObjectNode()))
+                .isInstanceOf(OpenAiException.class)
+                .extracting("code")
+                .isEqualTo(OpenAiErrorCode.NOT_CONFIGURED.code());
+    }
+
+    @Test
     void rejectsResponseWithoutOutputText() {
         OpenAiClient client = new OpenAiClient(properties(), request -> "{\"output\":[]}");
 

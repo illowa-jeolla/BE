@@ -32,7 +32,9 @@ public class OpenAiClient {
 
     @Autowired
     public OpenAiClient(OpenAiProperties properties) {
-        this(properties, createResponseFetcher(properties));
+        this(properties, properties.isConfigured()
+                ? createResponseFetcher(properties)
+                : request -> { throw new OpenAiException(OpenAiErrorCode.NOT_CONFIGURED); });
     }
 
     OpenAiClient(OpenAiProperties properties,

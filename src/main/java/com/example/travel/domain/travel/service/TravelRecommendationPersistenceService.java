@@ -62,7 +62,8 @@ public class TravelRecommendationPersistenceService {
         TravelGuide guide = guideRepository.save(TravelGuide.ready(request, user, result.title(),
                 result.summary(), result.travelTip(), generatedByAi, OffsetDateTime.now(clock)));
         Map<String, TravelCandidateItem> byId = candidates.stream().collect(
-                Collectors.toMap(TravelCandidateItem::contentId, Function.identity()));
+                Collectors.toMap(TravelCandidateItem::contentId, Function.identity(),
+                        (first, ignored) -> first));
 
         List<TravelGuideItem> items = result.days().stream()
                 .flatMap(day -> day.items().stream().map(item -> {
