@@ -4,6 +4,8 @@ import com.example.travel.global.auth.JwtAuthenticationFilter;
 import com.example.travel.global.auth.JwtProperties;
 import com.example.travel.domain.auth.kakao.config.KakaoProperties;
 import com.example.travel.domain.auth.google.config.GoogleProperties;
+import com.example.travel.domain.job.config.JunnamPublicJobApiProperties;
+import com.example.travel.domain.job.config.TourJobApiProperties;
 import com.example.travel.domain.tour.config.TourInfoProperties;
 import com.example.travel.domain.location.config.KakaoMapProperties;
 import com.example.travel.domain.ai.config.OpenAiProperties;
@@ -28,7 +30,8 @@ import java.util.List;
 
 @Configuration
 @EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class, GoogleProperties.class,
-        TourInfoProperties.class, KakaoMapProperties.class, OpenAiProperties.class})
+        TourInfoProperties.class, KakaoMapProperties.class, OpenAiProperties.class,
+        TourJobApiProperties.class, JunnamPublicJobApiProperties.class})
 public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter filter) throws Exception {
