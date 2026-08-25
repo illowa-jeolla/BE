@@ -56,26 +56,26 @@ public class JunnamPublicJobApiClient {
     public JunnamPublicJobListResponse findJobs(int startPage, int pageSize, int numOfRows, String region) {
         validateServiceKey();
 
-        Document document = request(listUri(startPage, pageSize, numOfRows));
-        validateResponse(document);
+        ApiResponseDocument response = request(listUri(startPage, pageSize, numOfRows, region));
+        validateResponse(response);
 
-        Element body = firstElement(document, "body");
-        List<JunnamPublicJobItem> items = jobs(document, region);
+        Element body = firstElement(response.document(), "body");
+        List<JunnamPublicJobItem> items = jobs(response.document());
         return new JunnamPublicJobListResponse(
                 intText(body, "pageIndex", Math.max(startPage, 1)),
                 intText(body, "pageSize", clampRows(pageSize)),
                 intText(body, "numOfRows", clampRows(numOfRows)),
-                totalCount(body, region, items),
+                intText(body, "totalCount", 0),
                 items);
     }
 
     public JunnamPublicJobDetailResponse findJobDetail(String jobKey) {
         validateServiceKey();
 
-        Document document = request(detailUri(jobKey));
-        validateResponse(document);
+        ApiResponseDocument response = request(detailUri(jobKey));
+        validateResponse(response);
 
-        Element item = firstElement(document, "item");
+        Element item = firstElement(response.document(), "item");
         if (item == null) {
             throw new ExternalJobException(ExternalJobErrorCode.NOT_FOUND);
         }
@@ -88,15 +88,15 @@ public class JunnamPublicJobApiClient {
         }
     }
 
-    private Document request(URI uri) {
+    private ApiResponseDocument request(URI uri) {
         try {
             String body = bodyFetcher.apply(uri);
             if (body == null || body.isBlank()) throw unavailable();
-            return parseXml(body);
+            return new ApiResponseDocument(parseXml(body), false);
         } catch (RestClientResponseException exception) {
             String body = exception.getResponseBodyAsString();
             if (body == null || body.isBlank()) throw unavailable(exception);
-            return parseXml(body);
+            return new ApiResponseDocument(parseXml(body), true);
         } catch (RestClientException exception) {
             throw unavailable(exception);
         }
@@ -117,24 +117,30 @@ public class JunnamPublicJobApiClient {
         }
     }
 
-    private void validateResponse(Document document) {
-        String openApiError = firstText(document, "returnAuthMsg");
+    private void validateResponse(ApiResponseDocument response) {
+        String openApiError = firstText(response.document(), "returnAuthMsg");
         if (openApiError != null && !openApiError.isBlank()) {
             throw new ExternalJobException(ExternalJobErrorCode.UPSTREAM_ERROR);
         }
 
-        String resultCode = firstText(document, "resultCode");
-        if (resultCode != null && !resultCode.isBlank() && !"00".equals(resultCode) && !"0000".equals(resultCode)) {
+        String resultCode = firstText(response.document(), "resultCode");
+        if (response.httpError() || !"00".equals(resultCode)) {
             throw new ExternalJobException(ExternalJobErrorCode.UPSTREAM_ERROR);
         }
     }
 
-    private URI listUri(int startPage, int pageSize, int numOfRows) {
+    private record ApiResponseDocument(Document document, boolean httpError) {
+    }
+
+    private URI listUri(int startPage, int pageSize, int numOfRows, String region) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(properties.baseUrl())
                 .path("/getGovjobList")
                 .queryParam("pageSize", clampRows(pageSize))
                 .queryParam("startPage", Math.max(startPage, 1))
                 .queryParam("numOfRows", clampRows(numOfRows));
+        if (!isAllRegion(region)) {
+            builder.queryParam("jobArea", region.trim());
+        }
         String uri = builder.build().encode().toUriString();
         return URI.create(uri + "&ServiceKey=" + serviceKeyForQuery());
     }
@@ -153,15 +159,12 @@ public class JunnamPublicJobApiClient {
         return URLEncoder.encode(key, StandardCharsets.UTF_8);
     }
 
-    private List<JunnamPublicJobItem> jobs(Document document, String region) {
+    private List<JunnamPublicJobItem> jobs(Document document) {
         List<JunnamPublicJobItem> jobs = new ArrayList<>();
         NodeList nodes = document.getElementsByTagName("item");
         for (int i = 0; i < nodes.getLength(); i++) {
             if (nodes.item(i) instanceof Element item) {
                 Map<String, String> fields = fields(item);
-                if (!matchesRegion(fields, region)) {
-                    continue;
-                }
                 jobs.add(new JunnamPublicJobItem(
                         firstPresent(fields, "corpNm", "corpoNm", "companyName", "entNm", "cpnNm"),
                         firstPresent(fields, "jobTitle", "title", "empmnTtl", "ttl", "spcNm"),
@@ -172,22 +175,6 @@ public class JunnamPublicJobApiClient {
             }
         }
         return jobs;
-    }
-
-    private boolean matchesRegion(Map<String, String> fields, String region) {
-        if (isAllRegion(region)) {
-            return true;
-        }
-
-        String categoryName = firstPresent(fields, "jobCategoryNm", "categoryName", "category", "regionNm");
-        return categoryName != null && categoryName.equals(region.trim());
-    }
-
-    private int totalCount(Element body, String region, List<JunnamPublicJobItem> items) {
-        if (isAllRegion(region)) {
-            return intText(body, "totalCount", 0);
-        }
-        return items.size();
     }
 
     private boolean isAllRegion(String region) {

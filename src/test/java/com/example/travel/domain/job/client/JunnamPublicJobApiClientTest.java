@@ -67,39 +67,39 @@ class JunnamPublicJobApiClientTest {
     }
 
     @Test
-    void findJobsFiltersCurrentPageByRegion() {
-        JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> """
-                <response>
-                  <header>
-                    <resultCode>00</resultCode>
-                    <resultMsg>NORMAL SERVICE.</resultMsg>
-                  </header>
-                  <body>
-                    <pageIndex>1</pageIndex>
-                    <pageSize>12</pageSize>
-                    <numOfRows>12</numOfRows>
-                    <totalCount>2</totalCount>
-                    <items>
-                      <item>
-                        <jobKey>1</jobKey>
-                        <jobTitle>보성 일자리</jobTitle>
-                        <jobCategoryNm>보성</jobCategoryNm>
-                      </item>
-                      <item>
-                        <jobKey>2</jobKey>
-                        <jobTitle>나주 일자리</jobTitle>
-                        <jobCategoryNm>나주</jobCategoryNm>
-                      </item>
-                    </items>
-                  </body>
-                </response>
-                """);
+    void findJobsPassesRegionAsJobAreaQueryParameter() {
+        List<URI> requestedUris = new ArrayList<>();
+        JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> {
+            requestedUris.add(uri);
+            return """
+                    <response>
+                      <header>
+                        <resultCode>00</resultCode>
+                        <resultMsg>NORMAL SERVICE.</resultMsg>
+                      </header>
+                      <body>
+                        <pageIndex>1</pageIndex>
+                        <pageSize>12</pageSize>
+                        <numOfRows>12</numOfRows>
+                        <totalCount>8</totalCount>
+                        <items>
+                          <item>
+                            <jobKey>1</jobKey>
+                            <jobTitle>보성 일자리</jobTitle>
+                            <jobCategoryNm>보성</jobCategoryNm>
+                          </item>
+                        </items>
+                      </body>
+                    </response>
+                    """;
+        });
 
         JunnamPublicJobListResponse response = client.findJobs(1, 12, 12, "보성");
 
-        assertThat(response.totalCount()).isEqualTo(1);
+        assertThat(response.totalCount()).isEqualTo(8);
         assertThat(response.items()).hasSize(1);
         assertThat(response.items().get(0).title()).isEqualTo("보성 일자리");
+        assertThat(requestedUris.get(0).toString()).contains("jobArea=%EB%B3%B4%EC%84%B1");
     }
 
     @Test
@@ -138,38 +138,43 @@ class JunnamPublicJobApiClientTest {
     }
 
     @Test
-    void findJobsDoesNotFilterWhenRegionIsAllInEnglish() {
-        JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> """
-                <response>
-                  <header>
-                    <resultCode>00</resultCode>
-                    <resultMsg>NORMAL SERVICE.</resultMsg>
-                  </header>
-                  <body>
-                    <pageIndex>1</pageIndex>
-                    <pageSize>12</pageSize>
-                    <numOfRows>12</numOfRows>
-                    <totalCount>2</totalCount>
-                    <items>
-                      <item>
-                        <jobKey>1</jobKey>
-                        <jobTitle>보성 일자리</jobTitle>
-                        <jobCategoryNm>보성</jobCategoryNm>
-                      </item>
-                      <item>
-                        <jobKey>2</jobKey>
-                        <jobTitle>나주 일자리</jobTitle>
-                        <jobCategoryNm>나주</jobCategoryNm>
-                      </item>
-                    </items>
-                  </body>
-                </response>
-                """);
+    void findJobsDoesNotPassJobAreaWhenRegionIsAllInEnglish() {
+        List<URI> requestedUris = new ArrayList<>();
+        JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> {
+            requestedUris.add(uri);
+            return """
+                    <response>
+                      <header>
+                        <resultCode>00</resultCode>
+                        <resultMsg>NORMAL SERVICE.</resultMsg>
+                      </header>
+                      <body>
+                        <pageIndex>1</pageIndex>
+                        <pageSize>12</pageSize>
+                        <numOfRows>12</numOfRows>
+                        <totalCount>2</totalCount>
+                        <items>
+                          <item>
+                            <jobKey>1</jobKey>
+                            <jobTitle>보성 일자리</jobTitle>
+                            <jobCategoryNm>보성</jobCategoryNm>
+                          </item>
+                          <item>
+                            <jobKey>2</jobKey>
+                            <jobTitle>나주 일자리</jobTitle>
+                            <jobCategoryNm>나주</jobCategoryNm>
+                          </item>
+                        </items>
+                      </body>
+                    </response>
+                    """;
+        });
 
         JunnamPublicJobListResponse response = client.findJobs(1, 12, 12, "all");
 
         assertThat(response.totalCount()).isEqualTo(2);
         assertThat(response.items()).hasSize(2);
+        assertThat(requestedUris.get(0).toString()).doesNotContain("jobArea=");
     }
 
     @Test
@@ -277,6 +282,44 @@ class JunnamPublicJobApiClientTest {
                     """.getBytes(StandardCharsets.UTF_8),
                     StandardCharsets.UTF_8);
         });
+
+        assertThatThrownBy(() -> client.findJobs(1, 12, 12))
+                .isInstanceOf(ExternalJobException.class)
+                .extracting("code")
+                .isEqualTo(ExternalJobErrorCode.UPSTREAM_ERROR.code());
+    }
+
+    @Test
+    void httpErrorWithUnrecognizedBodyIsHandledAsUpstreamError() {
+        JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> {
+            throw new RestClientResponseException(
+                    "Internal Server Error",
+                    500,
+                    "Internal Server Error",
+                    HttpHeaders.EMPTY,
+                    """
+                    <response>
+                      <body/>
+                    </response>
+                    """.getBytes(StandardCharsets.UTF_8),
+                    StandardCharsets.UTF_8);
+        });
+
+        assertThatThrownBy(() -> client.findJobs(1, 12, 12))
+                .isInstanceOf(ExternalJobException.class)
+                .extracting("code")
+                .isEqualTo(ExternalJobErrorCode.UPSTREAM_ERROR.code());
+    }
+
+    @Test
+    void throwsUpstreamErrorWhenSuccessResultCodeIsMissing() {
+        JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> """
+                <response>
+                  <body>
+                    <items/>
+                  </body>
+                </response>
+                """);
 
         assertThatThrownBy(() -> client.findJobs(1, 12, 12))
                 .isInstanceOf(ExternalJobException.class)
