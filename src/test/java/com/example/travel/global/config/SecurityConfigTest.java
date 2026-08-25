@@ -114,6 +114,24 @@ class SecurityConfigTest {
     }
 
     @Test
+    void externalJobApiRequiresAccessToken() throws Exception {
+        mockMvc.perform(get("/api/v1/jobs/external/tour"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/v1/jobs/external/junnam"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void validAccessTokenPassesExternalJobSecurityCheck() throws Exception {
+        String token = jwtProvider.createAccessToken(7L, "USER");
+
+        mockMvc.perform(get("/api/v1/jobs/external/security-check")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void corsPreflightAllowsGetAndPostWithConfiguredHeaders() throws Exception {
         mockMvc.perform(options("/api/v1/tour/places")
                         .header("Origin", "http://localhost:3000")
