@@ -44,4 +44,17 @@ public class Region extends CreatedAtEntity {
 
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
+
+    private Region(String name, RegionType regionType, BigDecimal latitude,
+                   BigDecimal longitude) {
+        this.name = name;
+        this.regionType = regionType;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
+
+    public static Region createSupportedCity(String name, BigDecimal latitude,
+                                             BigDecimal longitude) {
+        return new Region(name, RegionType.CITY, latitude, longitude);
+    }
 }

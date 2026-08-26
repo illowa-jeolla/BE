@@ -22,17 +22,17 @@ public class TravelPost extends UpdatedAtEntity {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "region_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "region_id")
     private Region region;
 
-    @Column(nullable = false, length = 200)
+    @Column(length = 200)
     private String title;
 
     @Column(length = 100)
     private String concept;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @Enumerated(EnumType.STRING)
@@ -41,4 +41,65 @@ public class TravelPost extends UpdatedAtEntity {
 
     @Column(name = "view_count", nullable = false)
     private int viewCount;
+
+    private TravelPost(User author) {
+        this.author = author;
+        this.status = TravelPostStatus.DRAFT;
+    }
+
+    public static TravelPost createDraft(User author) {
+        return new TravelPost(author);
+    }
+
+    public void updateDraft(Region region, String title, String concept, String content) {
+        if (status != TravelPostStatus.DRAFT) {
+            throw new IllegalStateException("Only draft posts can be updated as drafts.");
+        }
+        this.region = region;
+        this.title = title;
+        this.concept = concept;
+        this.content = content;
+        touchUpdatedAt();
+    }
+
+    public void touchDraft() {
+        if (status != TravelPostStatus.DRAFT) {
+            throw new IllegalStateException("Only draft posts can be touched as drafts.");
+        }
+        touchUpdatedAt();
+    }
+
+    public void publish() {
+        if (status != TravelPostStatus.DRAFT) {
+            throw new IllegalStateException("Only draft posts can be published.");
+        }
+        status = TravelPostStatus.PUBLISHED;
+        touchUpdatedAt();
+    }
+
+    public void updatePublished(Region region, String title, String concept, String content) {
+        if (status != TravelPostStatus.PUBLISHED) {
+            throw new IllegalStateException("Only published posts can be updated.");
+        }
+        this.region = region;
+        this.title = title;
+        this.concept = concept;
+        this.content = content;
+        touchUpdatedAt();
+    }
+
+    public void touchPublished() {
+        if (status != TravelPostStatus.PUBLISHED) {
+            throw new IllegalStateException("Only published posts can be touched.");
+        }
+        touchUpdatedAt();
+    }
+
+    public void softDelete() {
+        if (status == TravelPostStatus.DELETED) {
+            return;
+        }
+        status = TravelPostStatus.DELETED;
+        touchUpdatedAt();
+    }
 }
