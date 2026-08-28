@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Modifying;
 import jakarta.persistence.LockModeType;
 
 import java.util.Collection;
@@ -17,6 +18,10 @@ public interface TravelPostCommentRepository extends JpaRepository<TravelPostCom
     List<TravelPostComment> findAllByPostIdAndStatusInOrderByCreatedAtAscIdAsc(
             Long postId, Collection<CommentStatus> statuses);
     Optional<TravelPostComment> findByIdAndPostId(Long commentId, Long postId);
+
+    @Modifying
+    @Query("delete from TravelPostComment c where c.post.id = :postId")
+    void deleteAllByPostId(@Param("postId") Long postId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
