@@ -10,7 +10,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
   batch:
     job:
       enabled: false
@@ -28,13 +28,20 @@ spring:
 
 community:
   image:
-    bucket: ${COMMUNITY_IMAGE_S3_BUCKET}
+    storage: ${COMMUNITY_IMAGE_STORAGE:s3}
+    bucket: ${COMMUNITY_IMAGE_S3_BUCKET:}
     region: ${AWS_REGION:ap-northeast-2}
     presigned-url-expiration-minutes: ${COMMUNITY_IMAGE_URL_EXPIRATION_MINUTES:30}
     max-file-size: 10485760
     max-images-per-post: 5
+    local:
+      directory: ${COMMUNITY_IMAGE_LOCAL_DIRECTORY:./uploads}
+      base-url: ${COMMUNITY_IMAGE_LOCAL_BASE_URL:http://localhost:8080/local-images}
   draft-cleanup:
     cron: "0 0 4 * * *"
+    zone: Asia/Seoul
+  deleted-post-cleanup:
+    cron: "0 30 4 * * *"
     zone: Asia/Seoul
   image-deletion:
     cron: "0 */10 * * * *"
