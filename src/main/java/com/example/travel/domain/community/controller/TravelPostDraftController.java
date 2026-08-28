@@ -4,10 +4,13 @@ import com.example.travel.domain.community.dto.request.UpdateTravelPostDraftRequ
 import com.example.travel.domain.community.dto.response.CreateTravelPostDraftResponse;
 import com.example.travel.domain.community.dto.response.TravelPostDraftResponse;
 import com.example.travel.domain.community.dto.response.TravelPostDetailResponse;
+import com.example.travel.domain.community.dto.response.TravelPostImageResponse;
 import com.example.travel.domain.community.service.TravelPostDraftService;
+import com.example.travel.domain.community.service.TravelPostImageService;
 import com.example.travel.global.common.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,14 +20,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/community/travel-posts/drafts")
 public class TravelPostDraftController {
     private final TravelPostDraftService travelPostDraftService;
+    private final TravelPostImageService imageService;
 
-    public TravelPostDraftController(TravelPostDraftService travelPostDraftService) {
+    public TravelPostDraftController(TravelPostDraftService travelPostDraftService,
+                                     TravelPostImageService imageService) {
         this.travelPostDraftService = travelPostDraftService;
+        this.imageService = imageService;
     }
 
     @PostMapping
@@ -52,6 +60,23 @@ public class TravelPostDraftController {
     public ResponseEntity<Void> deleteDraft(Authentication authentication,
                                             @PathVariable Long draftId) {
         travelPostDraftService.delete((Long) authentication.getPrincipal(), draftId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/{draftId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<TravelPostImageResponse>> addImage(
+            Authentication authentication, @PathVariable Long draftId,
+            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                imageService.upload((Long) authentication.getPrincipal(), draftId, file),
+                "이미지를 추가했습니다."));
+    }
+
+    @DeleteMapping("/{draftId}/images/{imageId}")
+    public ResponseEntity<Void> deleteImage(Authentication authentication,
+                                            @PathVariable Long draftId,
+                                            @PathVariable Long imageId) {
+        imageService.delete((Long) authentication.getPrincipal(), draftId, imageId);
         return ResponseEntity.noContent().build();
     }
 

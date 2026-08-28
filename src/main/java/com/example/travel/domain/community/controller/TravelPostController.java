@@ -70,7 +70,7 @@ public class TravelPostController {
     public ResponseEntity<ApiResponse<TravelPostImageResponse>> addImage(
             Authentication authentication, @PathVariable Long postId,
             @RequestPart("file") MultipartFile file) {
-        return ResponseEntity.status(201).body(ApiResponse.success(imageService.uploadOwned(
+        return ResponseEntity.status(201).body(ApiResponse.success(imageService.uploadPublished(
                 (Long) authentication.getPrincipal(), postId, file), "이미지를 추가했습니다."));
     }
 
@@ -78,7 +78,7 @@ public class TravelPostController {
     public ResponseEntity<Void> deleteImage(Authentication authentication,
                                             @PathVariable Long postId,
                                             @PathVariable Long imageId) {
-        imageService.deleteOwned((Long) authentication.getPrincipal(), postId, imageId);
+        imageService.deletePublished((Long) authentication.getPrincipal(), postId, imageId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -49,25 +49,6 @@ public class TravelPostImageService {
     }
 
     @Transactional
-    public TravelPostImageResponse uploadOwned(Long userId, Long postId, MultipartFile file) {
-        if (travelPostRepository.findOwnedByIdAndStatusForUpdate(
-                postId, userId, TravelPostStatus.DRAFT).isPresent()) {
-            return upload(userId, postId, file);
-        }
-        return uploadPublished(userId, postId, file);
-    }
-
-    @Transactional
-    public void deleteOwned(Long userId, Long postId, Long imageId) {
-        if (travelPostRepository.findOwnedByIdAndStatusForUpdate(
-                postId, userId, TravelPostStatus.DRAFT).isPresent()) {
-            delete(userId, postId, imageId);
-            return;
-        }
-        deletePublished(userId, postId, imageId);
-    }
-
-    @Transactional
     public TravelPostImageResponse upload(Long userId, Long draftId, MultipartFile file) {
         TravelPost draft = travelPostRepository.findOwnedByIdAndStatusForUpdate(
                         draftId, userId, TravelPostStatus.DRAFT)
