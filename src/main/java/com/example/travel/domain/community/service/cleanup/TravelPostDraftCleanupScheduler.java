@@ -8,6 +8,8 @@ import java.time.OffsetDateTime;
 
 @Component
 public class TravelPostDraftCleanupScheduler {
+    private static final long RETENTION_DAYS = 3;
+
     private final TravelPostDraftCleanupService cleanupService;
     private final Clock clock;
 
@@ -20,6 +22,6 @@ public class TravelPostDraftCleanupScheduler {
     @Scheduled(cron = "${community.draft-cleanup.cron:0 0 4 * * *}",
             zone = "${community.draft-cleanup.zone:Asia/Seoul}")
     public void cleanup() {
-        cleanupService.deleteExpired(OffsetDateTime.now(clock).minusDays(7));
+        cleanupService.deleteExpired(OffsetDateTime.now(clock).minusDays(RETENTION_DAYS));
     }
 }
