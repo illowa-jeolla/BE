@@ -28,7 +28,7 @@ spring:
 
 community:
   image:
-    storage: ${COMMUNITY_IMAGE_STORAGE:s3}
+    storage: ${COMMUNITY_IMAGE_STORAGE:local}
     bucket: ${COMMUNITY_IMAGE_S3_BUCKET:}
     region: ${AWS_REGION:ap-northeast-2}
     presigned-url-expiration-minutes: ${COMMUNITY_IMAGE_URL_EXPIRATION_MINUTES:30}

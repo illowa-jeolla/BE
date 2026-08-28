@@ -42,6 +42,11 @@ public class S3ObjectDeletionQueue {
         } catch (DataIntegrityViolationException ignored) {
             // 동일 objectKey 삭제 작업이 이미 등록됐다.
         }
-        processor.processOne(objectKey);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                processor.processOne(objectKey);
+            }
+        });
     }
 }

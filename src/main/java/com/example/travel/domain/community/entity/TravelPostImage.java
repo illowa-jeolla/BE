@@ -23,7 +23,7 @@ public class TravelPostImage extends CreatedAtEntity {
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
-    @Column(name = "object_key", columnDefinition = "TEXT")
+    @Column(name = "object_key", nullable = false, columnDefinition = "TEXT")
     private String objectKey;
 
     @Column(name = "alt_text", length = 255)
@@ -45,4 +45,5 @@ public class TravelPostImage extends CreatedAtEntity {
     public void changeDisplayOrder(short displayOrder) {
         this.displayOrder = displayOrder;
     }
+
 }

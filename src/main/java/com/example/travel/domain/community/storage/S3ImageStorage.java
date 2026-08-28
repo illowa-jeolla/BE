@@ -6,10 +6,10 @@ import com.example.travel.domain.community.exception.CommunityException;
 import org.springframework.stereotype.Component;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -38,7 +38,7 @@ public class S3ImageStorage implements ImageStorage {
             s3Client.putObject(PutObjectRequest.builder()
                     .bucket(bucket).key(objectKey).contentType(contentType).build(),
                     RequestBody.fromBytes(content));
-        } catch (S3Exception exception) {
+        } catch (SdkException exception) {
             throw new CommunityException(CommunityErrorCode.IMAGE_STORAGE_FAILED);
         }
     }
@@ -48,16 +48,20 @@ public class S3ImageStorage implements ImageStorage {
         try {
             s3Client.deleteObject(DeleteObjectRequest.builder()
                     .bucket(bucket).key(objectKey).build());
-        } catch (S3Exception exception) {
+        } catch (SdkException exception) {
             throw new CommunityException(CommunityErrorCode.IMAGE_DELETE_FAILED);
         }
     }
 
     @Override
     public String accessUrl(String objectKey) {
-        var getObject = GetObjectRequest.builder().bucket(bucket).key(objectKey).build();
-        return presigner.presignGetObject(GetObjectPresignRequest.builder()
-                        .signatureDuration(urlExpiration).getObjectRequest(getObject).build())
-                .url().toString();
+        try {
+            var getObject = GetObjectRequest.builder().bucket(bucket).key(objectKey).build();
+            return presigner.presignGetObject(GetObjectPresignRequest.builder()
+                            .signatureDuration(urlExpiration).getObjectRequest(getObject).build())
+                    .url().toString();
+        } catch (SdkException exception) {
+            throw new CommunityException(CommunityErrorCode.IMAGE_STORAGE_FAILED);
+        }
     }
 }
