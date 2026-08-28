@@ -34,9 +34,9 @@ gathering session.md
 ai session.md
 ai api_spec.md
 ai technical decisions.md
-sharing session.md
-sharing api spec.md
-postman sharing.md
+/postman sharing.md
+/sharing api spec.md
+/sharing session.md
 
 ### Local environment configuration ###
 .env

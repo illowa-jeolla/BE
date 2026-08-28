@@ -64,6 +64,10 @@ google:
   client-secret: ${GOOGLE_CLIENT_SECRET}
   redirect-uri: ${GOOGLE_REDIRECT_URI}
 
+frontend:
+  oauth-callback-uri: ${FRONTEND_OAUTH_CALLBACK_URI}
+  origin: ${FRONTEND_ORIGIN}
+
 gathering:
   cleanup:
     cron: "0 0 0 * * MON"
@@ -98,3 +102,13 @@ tour-job:
 junnam-public-job:
   service-key: ${JUNNAM_PUBLIC_JOB_API:}
   base-url: https://apis.data.go.kr/6460000/jnGovjobInfo
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+frontend:
+  oauth-callback-uri: ${FRONTEND_OAUTH_CALLBACK_URI:http://localhost:5173/oauth/callback}
+  origin: ${FRONTEND_ORIGIN:http://localhost:5173}
