@@ -30,9 +30,16 @@ import java.util.List;
 
 @Configuration
 @EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class, GoogleProperties.class,
+        FrontendProperties.class,
         TourInfoProperties.class, KakaoMapProperties.class, OpenAiProperties.class,
         TourJobApiProperties.class, JunnamPublicJobApiProperties.class})
 public class SecurityConfig {
+    private final FrontendProperties frontendProperties;
+
+    public SecurityConfig(FrontendProperties frontendProperties) {
+        this.frontendProperties = frontendProperties;
+    }
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter filter) throws Exception {
         return http
@@ -66,7 +73,8 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedOrigins(List.of(frontendProperties.origin()));
+        configuration.setAllowCredentials(true);
         configuration.setAllowedMethods(List.of("GET", "POST", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-XSRF-TOKEN"));
         configuration.setExposedHeaders(List.of("Set-Cookie"));

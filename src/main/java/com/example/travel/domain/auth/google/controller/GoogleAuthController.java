@@ -1,9 +1,8 @@
 package com.example.travel.domain.auth.google.controller;
 
-import com.example.travel.domain.auth.dto.AuthTokenResponse;
 import com.example.travel.domain.auth.google.service.GoogleAuthService;
 import com.example.travel.domain.auth.google.service.GoogleLoginStateService;
-import com.example.travel.global.common.ApiResponse;
+import com.example.travel.global.config.FrontendProperties;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -16,9 +15,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth/google")
 public class GoogleAuthController {
     private final GoogleAuthService googleAuthService;
+    private final FrontendProperties frontendProperties;
 
-    public GoogleAuthController(GoogleAuthService googleAuthService) {
+    public GoogleAuthController(GoogleAuthService googleAuthService,
+                                FrontendProperties frontendProperties) {
         this.googleAuthService = googleAuthService;
+        this.frontendProperties = frontendProperties;
     }
 
     @GetMapping
@@ -29,13 +31,15 @@ public class GoogleAuthController {
     }
 
     @GetMapping("/callback")
-    public ResponseEntity<ApiResponse<AuthTokenResponse>> callback(
+    public ResponseEntity<Void> callback(
             @RequestParam(required = false) String code,
             @RequestParam(required = false) String state,
             @RequestParam(required = false) String error,
             @CookieValue(name = GoogleLoginStateService.COOKIE_NAME, required = false) String cookieState,
             HttpServletResponse response) {
-        return ResponseEntity.ok(ApiResponse.success(
-                googleAuthService.callback(code, state, cookieState, error, response)));
+        googleAuthService.callback(code, state, cookieState, error, response);
+        return ResponseEntity.status(302)
+                .location(frontendProperties.oauthCallbackUri())
+                .build();
     }
 }

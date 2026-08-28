@@ -37,7 +37,7 @@ public class AuthController {
             @RequestAttribute("_csrf") CsrfToken csrfToken) {
         csrfToken.getToken();
         return ResponseEntity.ok(ApiResponse.success(
-                new CsrfTokenResponse("XSRF-TOKEN", csrfToken.getHeaderName())));
+                new CsrfTokenResponse(csrfToken.getToken(), "XSRF-TOKEN", csrfToken.getHeaderName())));
     }
 
     @PostMapping("/refresh")
