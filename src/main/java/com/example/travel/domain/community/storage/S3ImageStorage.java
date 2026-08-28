@@ -4,6 +4,7 @@ import com.example.travel.domain.community.config.CommunityImageProperties;
 import com.example.travel.domain.community.exception.CommunityErrorCode;
 import com.example.travel.domain.community.exception.CommunityException;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -16,6 +17,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import java.time.Duration;
 
 @Component
+@ConditionalOnProperty(name = "community.image.storage", havingValue = "s3", matchIfMissing = true)
 public class S3ImageStorage implements ImageStorage {
     private final S3Client s3Client;
     private final S3Presigner presigner;

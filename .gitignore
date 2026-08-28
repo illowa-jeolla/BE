@@ -42,6 +42,7 @@ postman sharing.md
 .env
 .env.*
 !.env.example
+uploads/
 
 ### NetBeans ###
 /nbproject/private/

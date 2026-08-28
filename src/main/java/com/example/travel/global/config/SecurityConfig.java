@@ -10,6 +10,7 @@ import com.example.travel.domain.tour.config.TourInfoProperties;
 import com.example.travel.domain.location.config.KakaoMapProperties;
 import com.example.travel.domain.ai.config.OpenAiProperties;
 import com.example.travel.domain.community.config.CommunityImageProperties;
+import com.example.travel.domain.community.config.LocalImageProperties;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.DispatcherType;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -33,7 +34,7 @@ import java.util.List;
 @EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class, GoogleProperties.class,
         TourInfoProperties.class, KakaoMapProperties.class, OpenAiProperties.class,
         TourJobApiProperties.class, JunnamPublicJobApiProperties.class,
-        CommunityImageProperties.class})
+        CommunityImageProperties.class, LocalImageProperties.class})
 public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter filter) throws Exception {
@@ -47,6 +48,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/local-images/**").permitAll()
                         .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login",
                                 "/api/v1/auth/refresh", "/api/v1/auth/csrf",
                                 "/api/v1/auth/kakao/**", "/api/v1/auth/google/**", "/error").permitAll()
