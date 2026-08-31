@@ -8,7 +8,7 @@ import java.time.OffsetDateTime;
 
 @Component
 public class TravelPostDraftCleanupScheduler {
-    private static final long RETENTION_DAYS = 3;
+    private static final long RETENTION_DAYS = 7;
 
     private final TravelPostDraftCleanupService cleanupService;
     private final Clock clock;

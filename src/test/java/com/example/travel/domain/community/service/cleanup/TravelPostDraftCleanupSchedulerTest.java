@@ -12,7 +12,7 @@ import static org.mockito.Mockito.verify;
 
 class TravelPostDraftCleanupSchedulerTest {
     @Test
-    void usesThreeDayRetentionPeriod() {
+    void usesSevenDayRetentionPeriod() {
         TravelPostDraftCleanupService cleanupService =
                 mock(TravelPostDraftCleanupService.class);
         Clock clock = Clock.fixed(Instant.parse("2026-08-28T00:00:00Z"),
@@ -21,6 +21,6 @@ class TravelPostDraftCleanupSchedulerTest {
         new TravelPostDraftCleanupScheduler(cleanupService, clock).cleanup();
 
         verify(cleanupService).deleteExpired(
-                OffsetDateTime.parse("2026-08-25T09:00:00+09:00"));
+                OffsetDateTime.parse("2026-08-21T09:00:00+09:00"));
     }
 }
