@@ -9,6 +9,8 @@ import com.example.travel.domain.job.config.TourJobApiProperties;
 import com.example.travel.domain.tour.config.TourInfoProperties;
 import com.example.travel.domain.location.config.KakaoMapProperties;
 import com.example.travel.domain.ai.config.OpenAiProperties;
+import com.example.travel.domain.community.config.CommunityImageProperties;
+import com.example.travel.domain.community.config.LocalImageProperties;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.DispatcherType;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -32,7 +34,8 @@ import java.util.List;
 @EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class, GoogleProperties.class,
         FrontendProperties.class,
         TourInfoProperties.class, KakaoMapProperties.class, OpenAiProperties.class,
-        TourJobApiProperties.class, JunnamPublicJobApiProperties.class})
+        TourJobApiProperties.class, JunnamPublicJobApiProperties.class,
+        CommunityImageProperties.class, LocalImageProperties.class})
 public class SecurityConfig {
     private final FrontendProperties frontendProperties;
 
@@ -52,6 +55,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/local-images/**").permitAll()
                         .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login",
                                 "/api/v1/auth/refresh", "/api/v1/auth/csrf",
                                 "/api/v1/auth/kakao/**", "/api/v1/auth/google/**", "/error").permitAll()
@@ -75,7 +79,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(frontendProperties.origin()));
         configuration.setAllowCredentials(true);
-        configuration.setAllowedMethods(List.of("GET", "POST", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "DELETE","PATCH","OPTIONS"));
         configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-XSRF-TOKEN"));
         configuration.setExposedHeaders(List.of("Set-Cookie"));
 

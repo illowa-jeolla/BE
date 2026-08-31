@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface RegionRepository extends JpaRepository<Region, Long> {
     @Query("""
@@ -25,4 +26,6 @@ public interface RegionRepository extends JpaRepository<Region, Long> {
             limit 1
             """, nativeQuery = true)
     Optional<Region> findActiveByName(@Param("name") String name);
+
+    List<Region> findAllByActiveTrueOrderByNameAsc();
 }
