@@ -35,4 +35,30 @@ public class TravelPostComment extends UpdatedAtEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private CommentStatus status = CommentStatus.VISIBLE;
+
+    private TravelPostComment(TravelPost post, User author, String content, boolean secret) {
+        this.post = post;
+        this.author = author;
+        this.content = content;
+        this.status = secret ? CommentStatus.HIDDEN : CommentStatus.VISIBLE;
+    }
+
+    public static TravelPostComment create(TravelPost post, User author,
+                                           String content, boolean secret) {
+        return new TravelPostComment(post, author, content, secret);
+    }
+
+    public void update(String content, boolean secret) {
+        if (status == CommentStatus.DELETED) {
+            throw new IllegalStateException("Deleted comments cannot be updated.");
+        }
+        this.content = content;
+        this.status = secret ? CommentStatus.HIDDEN : CommentStatus.VISIBLE;
+        touchUpdatedAt();
+    }
+
+    public void softDelete() {
+        status = CommentStatus.DELETED;
+        touchUpdatedAt();
+    }
 }

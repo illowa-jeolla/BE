@@ -1,17 +1,17 @@
 package com.example.travel.domain.gathering;
 
-import com.example.travel.domain.gathering.repository.projection.GatheringSearchProjection;
 import com.example.travel.domain.gathering.dto.request.GatheringSearchRequest;
-import com.example.travel.domain.gathering.dto.response.GatheringSearchResponse;
 import com.example.travel.domain.gathering.enums.GatheringStatus;
 import com.example.travel.domain.gathering.enums.ParticipantStatus;
 import com.example.travel.domain.gathering.exception.GatheringException;
 import com.example.travel.domain.gathering.repository.GatheringRepository;
-import com.example.travel.domain.gathering.service.calculator.GatheringRelevanceCalculator;
+import com.example.travel.domain.gathering.repository.projection.GatheringSearchProjection;
 import com.example.travel.domain.gathering.service.GatheringSearchService;
+import com.example.travel.domain.gathering.service.calculator.GatheringRelevanceCalculator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Pageable;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -43,86 +43,75 @@ class GatheringSearchServiceTest {
     }
 
     @Test
-    void searchesOtherOpenGatheringsWithinInclusiveDateRange() {
-        when(gatheringRepository.findSearchCandidates(
-                eq(7L), eq("여수"), any(), any(),
-                eq(GatheringStatus.OPEN), eq(ParticipantStatus.JOINED)))
-                .thenReturn(List.of());
+    void usesNowAsStartWhenDateFiltersAreMissing() {
+        GatheringSearchRequest request = new GatheringSearchRequest(
+                null, null, null, null, null, null, 0, 20);
 
-        searchService.search(7L, request(null, null, 0, 20));
+        searchService.search(7L, request);
+
+        ArgumentCaptor<OffsetDateTime> startsAt = ArgumentCaptor.forClass(OffsetDateTime.class);
+        verify(gatheringRepository).findSearchCandidates(
+                eq(7L), eq(""), startsAt.capture(), any(), eq(GatheringStatus.OPEN),
+                eq(ParticipantStatus.JOINED), any(Pageable.class));
+        assertThat(startsAt.getValue()).isEqualTo(OffsetDateTime.parse("2026-08-13T03:00:00Z"));
+    }
+
+    @Test
+    void usesLaterRequestedStartAndInclusiveEndDate() {
+        GatheringSearchRequest request = new GatheringSearchRequest(
+                "여수", LocalDate.of(2026, 8, 14), LocalDate.of(2026, 8, 20),
+                null, null, null, 0, 20);
+
+        searchService.search(7L, request);
 
         ArgumentCaptor<OffsetDateTime> startsAt = ArgumentCaptor.forClass(OffsetDateTime.class);
         ArgumentCaptor<OffsetDateTime> endsAt = ArgumentCaptor.forClass(OffsetDateTime.class);
         verify(gatheringRepository).findSearchCandidates(
                 eq(7L), eq("여수"), startsAt.capture(), endsAt.capture(),
-                eq(GatheringStatus.OPEN), eq(ParticipantStatus.JOINED));
-        assertThat(startsAt.getValue()).isEqualTo(OffsetDateTime.parse("2026-08-13T03:00:00Z"));
-        assertThat(endsAt.getValue()).isEqualTo(OffsetDateTime.parse("2026-08-15T00:00:00+09:00"));
+                eq(GatheringStatus.OPEN), eq(ParticipantStatus.JOINED), any(Pageable.class));
+        assertThat(startsAt.getValue()).isEqualTo(
+                OffsetDateTime.parse("2026-08-14T00:00:00+09:00"));
+        assertThat(endsAt.getValue()).isEqualTo(
+                OffsetDateTime.parse("2026-08-21T00:00:00+09:00"));
     }
 
     @Test
-    void optionalTimeAndConceptPrioritizeBetterMatchWithoutFilteringCandidates() {
-        GatheringSearchProjection exact = candidate(1L, "펍투어", "2026-08-13T19:00:00+09:00");
-        GatheringSearchProjection other = candidate(2L, "해변 산책", "2026-08-13T18:00:00+09:00");
-        when(gatheringRepository.findSearchCandidates(any(), any(), any(), any(), any(), any()))
-                .thenReturn(List.of(other, exact));
+    void appliesRepositoryPaginationWithoutRelevanceConditions() {
+        when(gatheringRepository.countSearchCandidates(any(), any(), any(), any()))
+                .thenReturn(45L);
+        when(gatheringRepository.findSearchCandidates(
+                any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(candidate(21L, "산책", "2026-08-14T18:00:00+09:00")));
 
-        GatheringSearchResponse response = searchService.search(
-                7L, request("19:00", "펍투어", 0, 20));
+        var response = searchService.search(7L, request(null, null, 1, 20));
 
-        assertThat(response.totalElements()).isEqualTo(2);
-        assertThat(response.content()).extracting(item -> item.id())
-                .containsExactly(1L, 2L);
-        assertThat(response.content().get(0).relevanceScore())
-                .isGreaterThan(response.content().get(1).relevanceScore());
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(gatheringRepository).findSearchCandidates(
+                any(), any(), any(), any(), any(), any(), pageable.capture());
+        assertThat(pageable.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(20);
+        assertThat(response.totalElements()).isEqualTo(45);
+        assertThat(response.hasNext()).isTrue();
     }
 
     @Test
-    void missingOptionalConditionsSortsByStartTime() {
-        GatheringSearchProjection later = candidate(1L, "펍투어", "2026-08-13T20:00:00+09:00");
-        GatheringSearchProjection earlier = candidate(2L, "산책", "2026-08-13T18:00:00+09:00");
-        when(gatheringRepository.findSearchCandidates(any(), any(), any(), any(), any(), any()))
-                .thenReturn(List.of(later, earlier));
-
-        GatheringSearchResponse response = searchService.search(
-                7L, request(" ", " ", 0, 20));
-
-        assertThat(response.content()).extracting(item -> item.id())
-                .containsExactly(2L, 1L);
-    }
-
-    @Test
-    void optionalMeetingPlacePrioritizesSimilarStoredMeetingPlace() {
-        GatheringSearchProjection exact = candidate(
-                1L, "산책", "여수 낭만포차 입구", "2026-08-13T19:00:00+09:00");
-        GatheringSearchProjection other = candidate(
-                2L, "산책", "오동도 주차장", "2026-08-13T19:00:00+09:00");
-        when(gatheringRepository.findSearchCandidates(any(), any(), any(), any(), any(), any()))
-                .thenReturn(List.of(other, exact));
-
-        GatheringSearchResponse response = searchService.search(
-                7L, request(null, null, "낭만포차", 0, 20));
-
-        assertThat(response.content()).extracting(item -> item.id())
-                .containsExactly(1L, 2L);
-        assertThat(response.content().get(0).meetingPlaceScore())
-                .isGreaterThan(response.content().get(1).meetingPlaceScore());
-    }
-
-    @Test
-    void appliesPaginationAfterRelevanceSorting() {
-        when(gatheringRepository.findSearchCandidates(any(), any(), any(), any(), any(), any()))
+    void boundsCandidatesAndSortsByRelevanceWhenRequested() {
+        when(gatheringRepository.countSearchCandidates(any(), any(), any(), any()))
+                .thenReturn(2L);
+        when(gatheringRepository.findSearchCandidates(
+                any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(
-                        candidate(1L, "산책", "2026-08-13T18:00:00+09:00"),
-                        candidate(2L, "미식", "2026-08-13T19:00:00+09:00"),
-                        candidate(3L, "전시", "2026-08-13T20:00:00+09:00")));
+                        candidate(2L, "저녁 식사", "2026-08-14T18:00:00+09:00"),
+                        candidate(1L, "야간 산책", "2026-08-14T19:00:00+09:00")));
 
-        GatheringSearchResponse response = searchService.search(
-                7L, request(null, null, 1, 2));
+        var response = searchService.search(7L, request("19:00", "야간 산책", 0, 20));
 
-        assertThat(response.content()).extracting(item -> item.id()).containsExactly(3L);
-        assertThat(response.totalElements()).isEqualTo(3);
-        assertThat(response.hasNext()).isFalse();
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(gatheringRepository).findSearchCandidates(
+                any(), any(), any(), any(), any(), any(), pageable.capture());
+        assertThat(pageable.getValue().getPageNumber()).isZero();
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(1000);
+        assertThat(response.content()).extracting(item -> item.id()).containsExactly(1L, 2L);
     }
 
     @Test
@@ -136,27 +125,17 @@ class GatheringSearchServiceTest {
                         assertThat(exception.getCode())
                                 .isEqualTo("GATHERING_400_INVALID_DATE_RANGE"));
         verify(gatheringRepository, never()).findSearchCandidates(
-                any(), any(), any(), any(), any(), any());
+                any(), any(), any(), any(), any(), any(), any());
     }
 
     private GatheringSearchRequest request(String time, String concept, int page, int size) {
-        return request(time, concept, null, page, size);
-    }
-
-    private GatheringSearchRequest request(String time, String concept, String meetingPlace,
-                                           int page, int size) {
-        return new GatheringSearchRequest(" 여수 ", LocalDate.of(2026, 8, 13),
-                LocalDate.of(2026, 8, 14), time, concept, meetingPlace, page, size);
+        return new GatheringSearchRequest("여수", LocalDate.of(2026, 8, 13),
+                LocalDate.of(2026, 8, 14), time, concept, null, page, size);
     }
 
     private GatheringSearchProjection candidate(Long id, String concept, String startsAt) {
-        return candidate(id, concept, "만남 장소", startsAt);
-    }
-
-    private GatheringSearchProjection candidate(Long id, String concept, String meetingPlace,
-                                                String startsAt) {
         return new GatheringSearchProjection(id, "게더링 " + id, 10L, "여수", concept,
-                meetingPlace, OffsetDateTime.parse(startsAt), (short) 4,
-                GatheringStatus.OPEN, 15L, "남도산책", 2L, 0L);
+                "여수역", OffsetDateTime.parse(startsAt), (short) 4,
+                GatheringStatus.OPEN, 15L, "호스트", 2L, 0L);
     }
 }
