@@ -139,7 +139,23 @@ public interface GatheringRepository extends JpaRepository<Gathering, Long> {
             @Param("startsAt") OffsetDateTime startsAt,
             @Param("endsAt") OffsetDateTime endsAt,
             @Param("status") GatheringStatus status,
-            @Param("participantStatus") ParticipantStatus participantStatus);
+            @Param("participantStatus") ParticipantStatus participantStatus,
+            Pageable pageable);
+
+    @Query("""
+            select count(g.id)
+            from Gathering g
+            where g.deletedAt is null
+              and g.status = :status
+              and (:region = '' or g.region.name = :region)
+              and g.region.active = true
+              and g.startsAt >= :startsAt
+              and g.startsAt < :endsAt
+            """)
+    long countSearchCandidates(@Param("region") String region,
+                               @Param("startsAt") OffsetDateTime startsAt,
+                               @Param("endsAt") OffsetDateTime endsAt,
+                               @Param("status") GatheringStatus status);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

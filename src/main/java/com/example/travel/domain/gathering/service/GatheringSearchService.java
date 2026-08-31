@@ -12,6 +12,8 @@ import com.example.travel.domain.gathering.repository.GatheringRepository;
 import com.example.travel.domain.gathering.service.calculator.GatheringRelevanceCalculator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.time.Clock;
 import java.time.LocalTime;
@@ -25,8 +27,7 @@ public class GatheringSearchService {
     private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 20;
-    private static final OffsetDateTime UNBOUNDED_START =
-            OffsetDateTime.parse("1970-01-01T00:00:00Z");
+    private static final int MAX_RELEVANCE_CANDIDATES = 1000;
     private static final OffsetDateTime UNBOUNDED_END =
             OffsetDateTime.parse("9999-12-31T23:59:59Z");
 
@@ -58,34 +59,48 @@ public class GatheringSearchService {
         OffsetDateTime rangeEnd = request.endsOn() == null ? null
                 : request.endsOn().plusDays(1).atStartOfDay(SERVICE_ZONE).toOffsetDateTime();
         OffsetDateTime now = OffsetDateTime.now(clock);
-        OffsetDateTime effectiveStart = rangeStart == null ? null
-                : (rangeStart.isAfter(now) ? rangeStart : now);
+        OffsetDateTime effectiveStart = rangeStart == null || !rangeStart.isAfter(now)
+                ? now : rangeStart;
 
-        if (effectiveStart != null && rangeEnd != null && !effectiveStart.isBefore(rangeEnd)) {
+        if (rangeEnd != null && !effectiveStart.isBefore(rangeEnd)) {
             return empty(page, size);
         }
 
+        String region = requestedRegion == null ? "" : requestedRegion;
+        OffsetDateTime endsAt = rangeEnd == null ? UNBOUNDED_END : rangeEnd;
+        boolean useRelevance = requestedTime != null || requestedConcept != null
+                || requestedMeetingPlace != null;
+        PageRequest pageable = useRelevance
+                ? PageRequest.of(0, MAX_RELEVANCE_CANDIDATES,
+                        Sort.by("startsAt").ascending().and(Sort.by("id").ascending()))
+                : PageRequest.of(page, size,
+                        Sort.by("startsAt").ascending().and(Sort.by("id").ascending()));
+
         List<GatheringSearchItem> sorted = gatheringRepository.findSearchCandidates(
-                        userId, requestedRegion == null ? "" : requestedRegion,
-                        effectiveStart == null ? UNBOUNDED_START : effectiveStart,
-                        rangeEnd == null ? UNBOUNDED_END : rangeEnd,
-                        GatheringStatus.OPEN, ParticipantStatus.JOINED)
+                        userId, region, effectiveStart, endsAt,
+                        GatheringStatus.OPEN, ParticipantStatus.JOINED, pageable)
                 .stream()
                 .map(candidate -> toItem(
                         candidate, requestedTime, requestedConcept, requestedMeetingPlace))
-                .sorted(comparator(requestedTime != null
-                        || requestedConcept != null
-                        || requestedMeetingPlace != null))
+                .sorted(comparator(useRelevance))
                 .toList();
+
+        long totalElements = gatheringRepository.countSearchCandidates(
+                region, effectiveStart, endsAt, GatheringStatus.OPEN);
+        if (!useRelevance) {
+            return new GatheringSearchResponse(sorted, page, size, totalElements,
+                    (long) (page + 1) * size < totalElements);
+        }
 
         long offset = (long) page * size;
         if (offset >= sorted.size()) {
-            return new GatheringSearchResponse(List.of(), page, size, sorted.size(), false);
+            return new GatheringSearchResponse(List.of(), page, size, totalElements,
+                    offset < totalElements);
         }
         int fromIndex = (int) offset;
         int toIndex = Math.min(fromIndex + size, sorted.size());
         return new GatheringSearchResponse(sorted.subList(fromIndex, toIndex), page, size,
-                sorted.size(), toIndex < sorted.size());
+                totalElements, toIndex < sorted.size() || toIndex < totalElements);
     }
 
     private GatheringSearchItem toItem(GatheringSearchProjection candidate,

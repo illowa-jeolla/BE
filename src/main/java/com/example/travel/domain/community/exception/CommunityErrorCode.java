@@ -44,7 +44,7 @@ public enum CommunityErrorCode implements ErrorCode {
     POST_ALREADY_LIKED(HttpStatus.CONFLICT, "COMMUNITY_409_POST_ALREADY_LIKED",
             "이미 해당 게시물에 좋아요를 눌렀습니다."),
     POST_LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMUNITY_404_POST_LIKE_NOT_FOUND",
-            "“해당 게시글에 등록한 좋아요가 없습니다"),
+            "해당 게시글에 등록한 좋아요가 없습니다"),
     IMAGE_READ_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "COMMUNITY_500_IMAGE_READ_FAILED",
             "이미지 파일을 읽지 못했습니다."),
     IMAGE_STORAGE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "COMMUNITY_500_IMAGE_STORAGE_FAILED",
