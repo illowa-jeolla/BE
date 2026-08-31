@@ -83,6 +83,25 @@ class ManualTravelGuideServiceTest {
     }
 
     @Test
+    void allowsStartAndEndLocationsOutsideTheTravelRegion() {
+        CreateManualTravelGuideRequest original = validRequest();
+        var farStart = new RouteLocationRequest("start", "서울역", "서울",
+                bd("37.5547"), bd("126.9706"));
+        var farEnd = new RouteLocationRequest("end", "부산역", "부산",
+                bd("35.1151"), bd("129.0414"));
+        CreateManualTravelGuideRequest request = new CreateManualTravelGuideRequest(
+                original.regionId(), original.startDate(), original.endDate(),
+                original.accommodation(), farStart, farEnd, original.themes(),
+                original.dailyPlaceCounts(), original.transportType(), original.companionType(),
+                original.title(), original.days());
+        stubOwnerAndRegion();
+        when(requestCacheService.nextId()).thenReturn(51L);
+        when(routeService.plan(any(), any(), any())).thenReturn(List.of());
+
+        assertThat(service.create(1L, request)).isEqualTo(51L);
+    }
+
+    @Test
     void rejectsMorePlacesThanTheOriginalDailyLimit() {
         CreateManualTravelGuideRequest original = validRequest();
         CreateManualTravelGuideRequest request = new CreateManualTravelGuideRequest(

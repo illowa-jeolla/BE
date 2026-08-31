@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class TravelRecommendationService {
-    private static final double REGION_SCOPE_METERS = 25_000;
+    private static final double REGION_SCOPE_METERS = 40_000;
     private static final long MAX_TRIP_DAYS = 7;
 
     private final UserRepository userRepository;
@@ -69,8 +69,6 @@ public class TravelRecommendationService {
         Region region = regionRepository.findActiveById(request.regionId())
                 .orElseThrow(() -> error(TravelRecommendationErrorCode.REGION_NOT_FOUND));
         validateLodgingScope(region, request.accommodation());
-        validateRouteLocationScope(region, request.startLocation());
-        validateRouteLocationScope(region, request.endLocation());
 
         int requestedPlaces = request.dailyPlaceCounts().stream().mapToInt(Integer::intValue).sum();
         List<TravelCandidateItem> candidates = candidateService.findCandidates(
@@ -174,17 +172,6 @@ public class TravelRecommendationService {
                 lodging.latitude(), lodging.longitude());
         if (distance > REGION_SCOPE_METERS) {
             throw error(TravelRecommendationErrorCode.LODGING_OUTSIDE_REGION);
-        }
-    }
-
-    private void validateRouteLocationScope(Region region, RouteLocationRequest location) {
-        if (region.getLatitude() == null || region.getLongitude() == null) {
-            throw error(TravelRecommendationErrorCode.REGION_NOT_FOUND);
-        }
-        double distance = haversineMeters(region.getLatitude(), region.getLongitude(),
-                location.latitude(), location.longitude());
-        if (distance > REGION_SCOPE_METERS) {
-            throw error(TravelRecommendationErrorCode.ROUTE_LOCATION_OUTSIDE_REGION);
         }
     }
 

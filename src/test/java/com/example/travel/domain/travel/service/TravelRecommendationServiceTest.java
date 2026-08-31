@@ -186,9 +186,9 @@ class TravelRecommendationServiceTest {
         AccommodationRequest lodging = new AccommodationRequest("kakao-1", "완도수엘라펜션",
                 "전남 완도군", new BigDecimal("34.3150"), new BigDecimal("126.7600"));
         RouteLocationRequest start = new RouteLocationRequest("start-1", "완도항", "전남 완도군",
-                new BigDecimal("34.3180"), new BigDecimal("126.7500"));
+                new BigDecimal("37.5665"), new BigDecimal("126.9780"));
         RouteLocationRequest end = new RouteLocationRequest("end-1", "완도공용버스터미널", "전남 완도군",
-                new BigDecimal("34.3155"), new BigDecimal("126.7380"));
+                new BigDecimal("35.1796"), new BigDecimal("129.0756"));
         int tripDays = (int) ChronoUnit.DAYS.between(startDate, endDate) + 1;
         return new CreateTravelRecommendationRequest(9L, startDate, endDate, lodging, start, end,
                 Set.of(TravelTheme.NATURE_HEALING), java.util.Collections.nCopies(
