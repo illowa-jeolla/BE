@@ -7,6 +7,7 @@ import com.example.travel.domain.job.exception.ExternalJobErrorCode;
 import com.example.travel.domain.job.exception.ExternalJobException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.net.URI;
@@ -179,19 +180,24 @@ class JunnamPublicJobApiClientTest {
 
     @Test
     void throwsUpstreamErrorWhenOpenApiErrorResponseComes() {
-        JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> """
-                <OpenAPI_ServiceResponse>
-                  <cmmMsgHeader>
-                    <errMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</errMsg>
-                    <returnAuthMsg>등록되지 않은 서비스키</returnAuthMsg>
-                  </cmmMsgHeader>
-                </OpenAPI_ServiceResponse>
-                """);
+        int[] attempts = {0};
+        JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> {
+            attempts[0]++;
+            return """
+                    <OpenAPI_ServiceResponse>
+                      <cmmMsgHeader>
+                        <errMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</errMsg>
+                        <returnAuthMsg>등록되지 않은 서비스키</returnAuthMsg>
+                      </cmmMsgHeader>
+                    </OpenAPI_ServiceResponse>
+                    """;
+        });
 
         assertThatThrownBy(() -> client.findJobs(1, 12, 12))
                 .isInstanceOf(ExternalJobException.class)
                 .extracting("code")
                 .isEqualTo(ExternalJobErrorCode.UPSTREAM_ERROR.code());
+        assertThat(attempts[0]).isOne();
     }
 
     @Test
@@ -266,7 +272,9 @@ class JunnamPublicJobApiClientTest {
 
     @Test
     void httpErrorBodyIsHandledAsUpstreamError() {
+        int[] attempts = {0};
         JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> {
+            attempts[0]++;
             throw new RestClientResponseException(
                     "Internal Server Error",
                     500,
@@ -287,6 +295,7 @@ class JunnamPublicJobApiClientTest {
                 .isInstanceOf(ExternalJobException.class)
                 .extracting("code")
                 .isEqualTo(ExternalJobErrorCode.UPSTREAM_ERROR.code());
+        assertThat(attempts[0]).isOne();
     }
 
     @Test
@@ -325,5 +334,73 @@ class JunnamPublicJobApiClientTest {
                 .isInstanceOf(ExternalJobException.class)
                 .extracting("code")
                 .isEqualTo(ExternalJobErrorCode.UPSTREAM_ERROR.code());
+    }
+
+    @Test
+    void findJobsRetriesTransientRequestFailure() {
+        int[] attempts = {0};
+        JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> {
+            attempts[0]++;
+            if (attempts[0] == 1) {
+                throw new ResourceAccessException("Read timed out");
+            }
+            return """
+                    <response>
+                      <header>
+                        <resultCode>00</resultCode>
+                        <resultMsg>NORMAL SERVICE.</resultMsg>
+                      </header>
+                      <body>
+                        <pageIndex>1</pageIndex>
+                        <pageSize>12</pageSize>
+                        <numOfRows>12</numOfRows>
+                        <totalCount>1</totalCount>
+                        <items>
+                          <item>
+                            <jobKey>1</jobKey>
+                            <jobTitle>재시도 성공 일자리</jobTitle>
+                          </item>
+                        </items>
+                      </body>
+                    </response>
+                    """;
+        });
+
+        JunnamPublicJobListResponse response = client.findJobs(1, 12, 12);
+
+        assertThat(attempts[0]).isEqualTo(2);
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().get(0).title()).isEqualTo("재시도 성공 일자리");
+    }
+
+    @Test
+    void findJobsRetriesMalformedTransientBody() {
+        int[] attempts = {0};
+        JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> {
+            attempts[0]++;
+            if (attempts[0] == 1) {
+                return "<html>upstream gateway error</html>";
+            }
+            return """
+                    <response>
+                      <header>
+                        <resultCode>00</resultCode>
+                        <resultMsg>NORMAL SERVICE.</resultMsg>
+                      </header>
+                      <body>
+                        <pageIndex>1</pageIndex>
+                        <pageSize>12</pageSize>
+                        <numOfRows>12</numOfRows>
+                        <totalCount>0</totalCount>
+                        <items/>
+                      </body>
+                    </response>
+                    """;
+        });
+
+        JunnamPublicJobListResponse response = client.findJobs(1, 12, 12);
+
+        assertThat(attempts[0]).isEqualTo(2);
+        assertThat(response.totalCount()).isZero();
     }
 }

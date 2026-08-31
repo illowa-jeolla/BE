@@ -24,7 +24,6 @@ import java.io.StringReader;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,15 +32,12 @@ import java.util.function.Function;
 
 @Component
 public class JunnamPublicJobApiClient {
-    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
-    private static final Duration READ_TIMEOUT = Duration.ofSeconds(7);
-
     private final JunnamPublicJobApiProperties properties;
     private final Function<URI, String> bodyFetcher;
 
     @Autowired
     public JunnamPublicJobApiClient(JunnamPublicJobApiProperties properties) {
-        this(properties, createBodyFetcher());
+        this(properties, createBodyFetcher(properties));
     }
 
     JunnamPublicJobApiClient(JunnamPublicJobApiProperties properties, Function<URI, String> bodyFetcher) {
@@ -57,7 +53,6 @@ public class JunnamPublicJobApiClient {
         validateServiceKey();
 
         ApiResponseDocument response = request(listUri(startPage, pageSize, numOfRows, region));
-        validateResponse(response);
 
         Element body = firstElement(response.document(), "body");
         List<JunnamPublicJobItem> items = jobs(response.document());
@@ -73,7 +68,6 @@ public class JunnamPublicJobApiClient {
         validateServiceKey();
 
         ApiResponseDocument response = request(detailUri(jobKey));
-        validateResponse(response);
 
         Element item = firstElement(response.document(), "item");
         if (item == null) {
@@ -89,6 +83,34 @@ public class JunnamPublicJobApiClient {
     }
 
     private ApiResponseDocument request(URI uri) {
+        ExternalJobException lastException = null;
+        for (int attempt = 1; attempt <= properties.maxAttempts(); attempt++) {
+            ApiResponseDocument response;
+            try {
+                response = fetchDocument(uri);
+            } catch (ExternalJobException exception) {
+                lastException = exception;
+                if (!isRetryableRequestFailure(exception) || attempt == properties.maxAttempts()) {
+                    throw exception;
+                }
+                sleepBeforeRetry();
+                continue;
+            }
+
+            if (hasOpenApiAuthError(response)) {
+                validateResponse(response);
+            }
+            if (isRetryableInvalidResponse(response) && attempt < properties.maxAttempts()) {
+                sleepBeforeRetry();
+                continue;
+            }
+            validateResponse(response);
+            return response;
+        }
+        throw lastException == null ? unavailable() : lastException;
+    }
+
+    private ApiResponseDocument fetchDocument(URI uri) {
         try {
             String body = bodyFetcher.apply(uri);
             if (body == null || body.isBlank()) throw unavailable();
@@ -99,6 +121,30 @@ public class JunnamPublicJobApiClient {
             return new ApiResponseDocument(parseXml(body), true);
         } catch (RestClientException exception) {
             throw unavailable(exception);
+        }
+    }
+
+    private boolean isRetryableRequestFailure(ExternalJobException exception) {
+        return ExternalJobErrorCode.UNAVAILABLE.code().equals(exception.getCode())
+                || ExternalJobErrorCode.UPSTREAM_ERROR.code().equals(exception.getCode());
+    }
+
+    private boolean isRetryableInvalidResponse(ApiResponseDocument response) {
+        return !hasOpenApiAuthError(response)
+                && (response.httpError() || firstText(response.document(), "resultCode") == null);
+    }
+
+    private boolean hasOpenApiAuthError(ApiResponseDocument response) {
+        String openApiError = firstText(response.document(), "returnAuthMsg");
+        return openApiError != null && !openApiError.isBlank();
+    }
+
+    private void sleepBeforeRetry() {
+        try {
+            Thread.sleep(properties.retryBackoff().toMillis());
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt();
+            throw unavailable(interruptedException);
         }
     }
 
@@ -255,8 +301,8 @@ public class JunnamPublicJobApiClient {
         return new ExternalJobException(ExternalJobErrorCode.UNAVAILABLE, cause);
     }
 
-    private static Function<URI, String> createBodyFetcher() {
-        RestClient restClient = createRestClient();
+    private static Function<URI, String> createBodyFetcher(JunnamPublicJobApiProperties properties) {
+        RestClient restClient = createRestClient(properties);
         return uri -> {
             byte[] body = restClient.get()
                     .uri(uri)
@@ -266,10 +312,10 @@ public class JunnamPublicJobApiClient {
         };
     }
 
-    private static RestClient createRestClient() {
+    private static RestClient createRestClient(JunnamPublicJobApiProperties properties) {
         var requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(CONNECT_TIMEOUT);
-        requestFactory.setReadTimeout(READ_TIMEOUT);
+        requestFactory.setConnectTimeout(properties.connectTimeout());
+        requestFactory.setReadTimeout(properties.readTimeout());
         return RestClient.builder().requestFactory(requestFactory).build();
     }
 }
