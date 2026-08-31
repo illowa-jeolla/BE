@@ -180,19 +180,24 @@ class JunnamPublicJobApiClientTest {
 
     @Test
     void throwsUpstreamErrorWhenOpenApiErrorResponseComes() {
-        JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> """
-                <OpenAPI_ServiceResponse>
-                  <cmmMsgHeader>
-                    <errMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</errMsg>
-                    <returnAuthMsg>등록되지 않은 서비스키</returnAuthMsg>
-                  </cmmMsgHeader>
-                </OpenAPI_ServiceResponse>
-                """);
+        int[] attempts = {0};
+        JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> {
+            attempts[0]++;
+            return """
+                    <OpenAPI_ServiceResponse>
+                      <cmmMsgHeader>
+                        <errMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</errMsg>
+                        <returnAuthMsg>등록되지 않은 서비스키</returnAuthMsg>
+                      </cmmMsgHeader>
+                    </OpenAPI_ServiceResponse>
+                    """;
+        });
 
         assertThatThrownBy(() -> client.findJobs(1, 12, 12))
                 .isInstanceOf(ExternalJobException.class)
                 .extracting("code")
                 .isEqualTo(ExternalJobErrorCode.UPSTREAM_ERROR.code());
+        assertThat(attempts[0]).isOne();
     }
 
     @Test
@@ -267,7 +272,9 @@ class JunnamPublicJobApiClientTest {
 
     @Test
     void httpErrorBodyIsHandledAsUpstreamError() {
+        int[] attempts = {0};
         JunnamPublicJobApiClient client = new JunnamPublicJobApiClient(properties, uri -> {
+            attempts[0]++;
             throw new RestClientResponseException(
                     "Internal Server Error",
                     500,
@@ -288,6 +295,7 @@ class JunnamPublicJobApiClientTest {
                 .isInstanceOf(ExternalJobException.class)
                 .extracting("code")
                 .isEqualTo(ExternalJobErrorCode.UPSTREAM_ERROR.code());
+        assertThat(attempts[0]).isOne();
     }
 
     @Test

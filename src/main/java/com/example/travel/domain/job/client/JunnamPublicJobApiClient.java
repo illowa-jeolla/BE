@@ -85,21 +85,27 @@ public class JunnamPublicJobApiClient {
     private ApiResponseDocument request(URI uri) {
         ExternalJobException lastException = null;
         for (int attempt = 1; attempt <= properties.maxAttempts(); attempt++) {
+            ApiResponseDocument response;
             try {
-                ApiResponseDocument response = fetchDocument(uri);
-                if (isRetryableInvalidResponse(response) && attempt < properties.maxAttempts()) {
-                    sleepBeforeRetry();
-                    continue;
-                }
-                validateResponse(response);
-                return response;
+                response = fetchDocument(uri);
             } catch (ExternalJobException exception) {
                 lastException = exception;
                 if (!isRetryableRequestFailure(exception) || attempt == properties.maxAttempts()) {
                     throw exception;
                 }
                 sleepBeforeRetry();
+                continue;
             }
+
+            if (hasOpenApiAuthError(response)) {
+                validateResponse(response);
+            }
+            if (isRetryableInvalidResponse(response) && attempt < properties.maxAttempts()) {
+                sleepBeforeRetry();
+                continue;
+            }
+            validateResponse(response);
+            return response;
         }
         throw lastException == null ? unavailable() : lastException;
     }
@@ -124,11 +130,13 @@ public class JunnamPublicJobApiClient {
     }
 
     private boolean isRetryableInvalidResponse(ApiResponseDocument response) {
-        if (response.httpError()) {
-            return firstText(response.document(), "returnAuthMsg") == null;
-        }
-        return firstText(response.document(), "resultCode") == null
-                && firstText(response.document(), "returnAuthMsg") == null;
+        return !hasOpenApiAuthError(response)
+                && (response.httpError() || firstText(response.document(), "resultCode") == null);
+    }
+
+    private boolean hasOpenApiAuthError(ApiResponseDocument response) {
+        String openApiError = firstText(response.document(), "returnAuthMsg");
+        return openApiError != null && !openApiError.isBlank();
     }
 
     private void sleepBeforeRetry() {
