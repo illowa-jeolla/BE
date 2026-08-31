@@ -28,7 +28,7 @@ import java.util.Set;
 @Service
 public class ManualTravelGuideService {
     private static final long MAX_TRIP_DAYS = 7;
-    private static final double REGION_SCOPE_METERS = 25_000;
+    private static final double REGION_SCOPE_METERS = 40_000;
     private static final double PLACE_RADIUS_METERS = 20_000;
 
     private final UserRepository userRepository;
@@ -60,10 +60,6 @@ public class ManualTravelGuideService {
                 .orElseThrow(() -> error(TravelRecommendationErrorCode.REGION_NOT_FOUND));
         validateLocationScope(region, request.accommodation().latitude(),
                 request.accommodation().longitude(), TravelRecommendationErrorCode.LODGING_OUTSIDE_REGION);
-        validateLocationScope(region, request.startLocation().latitude(),
-                request.startLocation().longitude(), TravelRecommendationErrorCode.ROUTE_LOCATION_OUTSIDE_REGION);
-        validateLocationScope(region, request.endLocation().latitude(),
-                request.endLocation().longitude(), TravelRecommendationErrorCode.ROUTE_LOCATION_OUTSIDE_REGION);
         validateDays(request);
 
         Long draftId = requestCacheService.nextId();
