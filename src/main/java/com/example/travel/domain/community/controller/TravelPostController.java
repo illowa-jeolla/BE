@@ -5,7 +5,9 @@ import com.example.travel.domain.community.dto.request.UpdateTravelPostRequest;
 import com.example.travel.domain.community.dto.response.TravelPostDetailResponse;
 import com.example.travel.domain.community.dto.response.TravelPostListResponse;
 import com.example.travel.domain.community.dto.response.TravelPostImageResponse;
+import com.example.travel.domain.community.dto.response.TravelPostLikeResponse;
 import com.example.travel.domain.community.service.TravelPostImageService;
+import com.example.travel.domain.community.service.TravelPostLikeService;
 import com.example.travel.domain.community.service.TravelPostService;
 import com.example.travel.global.common.ApiResponse;
 import jakarta.validation.Valid;
@@ -30,11 +32,14 @@ import org.springframework.web.multipart.MultipartFile;
 public class TravelPostController {
     private final TravelPostService travelPostService;
     private final TravelPostImageService imageService;
+    private final TravelPostLikeService likeService;
 
     public TravelPostController(TravelPostService travelPostService,
-                                TravelPostImageService imageService) {
+                                TravelPostImageService imageService,
+                                TravelPostLikeService likeService) {
         this.travelPostService = travelPostService;
         this.imageService = imageService;
+        this.likeService = likeService;
     }
 
     @GetMapping
@@ -80,5 +85,19 @@ public class TravelPostController {
                                             @PathVariable Long imageId) {
         imageService.deletePublished((Long) authentication.getPrincipal(), postId, imageId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{postId}/likes")
+    public ResponseEntity<ApiResponse<TravelPostLikeResponse>> like(
+            Authentication authentication, @PathVariable Long postId) {
+        return ResponseEntity.status(201).body(ApiResponse.success(likeService.like(
+                postId, (Long) authentication.getPrincipal())));
+    }
+
+    @DeleteMapping("/{postId}/likes")
+    public ResponseEntity<ApiResponse<TravelPostLikeResponse>> unlike(
+            Authentication authentication, @PathVariable Long postId) {
+        return ResponseEntity.ok(ApiResponse.success(likeService.unlike(
+                postId, (Long) authentication.getPrincipal())));
     }
 }

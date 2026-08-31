@@ -124,10 +124,9 @@ public interface GatheringRepository extends JpaRepository<Gathering, Long> {
             )
             from Gathering g
             left join GatheringParticipant gp on gp.gathering = g
-            where g.creator.id <> :userId
-              and g.deletedAt is null
+            where g.deletedAt is null
               and g.status = :status
-              and g.region.name = :region
+              and (:region = '' or g.region.name = :region)
               and g.region.active = true
               and g.startsAt >= :startsAt
               and g.startsAt < :endsAt

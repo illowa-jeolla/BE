@@ -43,7 +43,7 @@ class GatheringSearchServiceTest {
     }
 
     @Test
-    void searchesOtherOpenGatheringsWithinInclusiveDateRange() {
+    void searchesOpenGatheringsWithinInclusiveDateRange() {
         when(gatheringRepository.findSearchCandidates(
                 eq(7L), eq("여수"), any(), any(),
                 eq(GatheringStatus.OPEN), eq(ParticipantStatus.JOINED)))
@@ -58,6 +58,24 @@ class GatheringSearchServiceTest {
                 eq(GatheringStatus.OPEN), eq(ParticipantStatus.JOINED));
         assertThat(startsAt.getValue()).isEqualTo(OffsetDateTime.parse("2026-08-13T03:00:00Z"));
         assertThat(endsAt.getValue()).isEqualTo(OffsetDateTime.parse("2026-08-15T00:00:00+09:00"));
+    }
+
+    @Test
+    void searchesAllRegionsAndDatesWhenFiltersAreMissing() {
+        GatheringSearchRequest request = new GatheringSearchRequest(
+                null, null, null, null, null, null, 0, 20);
+        when(gatheringRepository.findSearchCandidates(
+                eq(7L), eq(""), any(), any(),
+                eq(GatheringStatus.OPEN), eq(ParticipantStatus.JOINED)))
+                .thenReturn(List.of());
+
+        GatheringSearchResponse response = searchService.search(7L, request);
+
+        verify(gatheringRepository).findSearchCandidates(
+                eq(7L), eq(""), any(), any(),
+                eq(GatheringStatus.OPEN), eq(ParticipantStatus.JOINED));
+        assertThat(response.content()).isEmpty();
+        assertThat(response.totalElements()).isZero();
     }
 
     @Test

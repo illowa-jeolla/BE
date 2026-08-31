@@ -25,4 +25,14 @@ public class TravelPostLike extends CreatedAtEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    private TravelPostLike(TravelPost post, User user) {
+        this.id = new TravelPostLikeId(post.getId(), user.getId());
+        this.post = post;
+        this.user = user;
+    }
+
+    public static TravelPostLike create(TravelPost post, User user) {
+        return new TravelPostLike(post, user);
+    }
 }

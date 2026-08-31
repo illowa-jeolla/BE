@@ -25,6 +25,10 @@ public class GatheringSearchService {
     private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 20;
+    private static final OffsetDateTime UNBOUNDED_START =
+            OffsetDateTime.parse("1970-01-01T00:00:00Z");
+    private static final OffsetDateTime UNBOUNDED_END =
+            OffsetDateTime.parse("9999-12-31T23:59:59Z");
 
     private final GatheringRepository gatheringRepository;
     private final GatheringRelevanceCalculator relevanceCalculator;
@@ -45,21 +49,26 @@ public class GatheringSearchService {
         int page = request.page() == null ? DEFAULT_PAGE : request.page();
         int size = request.size() == null ? DEFAULT_SIZE : request.size();
         LocalTime requestedTime = optionalTime(request.time());
+        String requestedRegion = optionalText(request.region());
         String requestedConcept = optionalText(request.concept());
         String requestedMeetingPlace = optionalText(request.meetingPlace());
 
-        OffsetDateTime rangeStart = request.startsOn().atStartOfDay(SERVICE_ZONE).toOffsetDateTime();
-        OffsetDateTime rangeEnd = request.endsOn().plusDays(1)
-                .atStartOfDay(SERVICE_ZONE).toOffsetDateTime();
+        OffsetDateTime rangeStart = request.startsOn() == null ? null
+                : request.startsOn().atStartOfDay(SERVICE_ZONE).toOffsetDateTime();
+        OffsetDateTime rangeEnd = request.endsOn() == null ? null
+                : request.endsOn().plusDays(1).atStartOfDay(SERVICE_ZONE).toOffsetDateTime();
         OffsetDateTime now = OffsetDateTime.now(clock);
-        OffsetDateTime effectiveStart = rangeStart.isAfter(now) ? rangeStart : now;
+        OffsetDateTime effectiveStart = rangeStart == null ? null
+                : (rangeStart.isAfter(now) ? rangeStart : now);
 
-        if (!effectiveStart.isBefore(rangeEnd)) {
+        if (effectiveStart != null && rangeEnd != null && !effectiveStart.isBefore(rangeEnd)) {
             return empty(page, size);
         }
 
         List<GatheringSearchItem> sorted = gatheringRepository.findSearchCandidates(
-                        userId, request.region().trim(), effectiveStart, rangeEnd,
+                        userId, requestedRegion == null ? "" : requestedRegion,
+                        effectiveStart == null ? UNBOUNDED_START : effectiveStart,
+                        rangeEnd == null ? UNBOUNDED_END : rangeEnd,
                         GatheringStatus.OPEN, ParticipantStatus.JOINED)
                 .stream()
                 .map(candidate -> toItem(
@@ -119,7 +128,8 @@ public class GatheringSearchService {
     }
 
     private void validateDateRange(GatheringSearchRequest request) {
-        if (request.endsOn().isBefore(request.startsOn())) {
+        if (request.startsOn() != null && request.endsOn() != null
+                && request.endsOn().isBefore(request.startsOn())) {
             throw new GatheringException(GatheringErrorCode.INVALID_DATE_RANGE);
         }
     }
