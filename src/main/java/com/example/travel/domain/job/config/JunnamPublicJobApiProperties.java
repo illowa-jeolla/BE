@@ -18,10 +18,6 @@ public record JunnamPublicJobApiProperties(
     private static final int DEFAULT_MAX_ATTEMPTS = 3;
     private static final Duration DEFAULT_RETRY_BACKOFF = Duration.ofMillis(300);
 
-    public JunnamPublicJobApiProperties(String serviceKey, String baseUrl) {
-        this(serviceKey, baseUrl, null, null, 0, null);
-    }
-
     public JunnamPublicJobApiProperties {
         connectTimeout = connectTimeout == null ? DEFAULT_CONNECT_TIMEOUT : connectTimeout;
         readTimeout = readTimeout == null ? DEFAULT_READ_TIMEOUT : readTimeout;

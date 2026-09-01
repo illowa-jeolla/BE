@@ -56,8 +56,11 @@ public class JunnamPublicJobApiClient {
 
         Element body = firstElement(response.document(), "body");
         List<JunnamPublicJobItem> items = jobs(response.document());
+        if (!isAllRegion(region)) {
+            items = filterByRegion(items, region);
+        }
         return new JunnamPublicJobListResponse(
-                intText(body, "pageIndex", Math.max(startPage, 1)),
+                Math.max(startPage, 1),
                 intText(body, "pageSize", clampRows(pageSize)),
                 intText(body, "numOfRows", clampRows(numOfRows)),
                 intText(body, "totalCount", 0),
@@ -130,8 +133,11 @@ public class JunnamPublicJobApiClient {
     }
 
     private boolean isRetryableInvalidResponse(ApiResponseDocument response) {
-        return !hasOpenApiAuthError(response)
-                && (response.httpError() || firstText(response.document(), "resultCode") == null);
+        return !hasOpenApiAuthError(response) && !isSuccessResponse(response);
+    }
+
+    private boolean isSuccessResponse(ApiResponseDocument response) {
+        return !response.httpError() && "00".equals(firstText(response.document(), "resultCode"));
     }
 
     private boolean hasOpenApiAuthError(ApiResponseDocument response) {
@@ -221,6 +227,13 @@ public class JunnamPublicJobApiClient {
             }
         }
         return jobs;
+    }
+
+    private List<JunnamPublicJobItem> filterByRegion(List<JunnamPublicJobItem> items, String region) {
+        String requestedRegion = region.trim();
+        return items.stream()
+                .filter(item -> requestedRegion.equals(item.rawFields().get("jobCategoryNm")))
+                .toList();
     }
 
     private boolean isAllRegion(String region) {
