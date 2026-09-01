@@ -7,12 +7,16 @@ import com.example.travel.domain.job.dto.TourJobListResponse;
 import com.example.travel.domain.job.dto.TourJobSearchCondition;
 import com.example.travel.domain.job.service.ExternalJobService;
 import com.example.travel.global.common.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/v1/jobs/external")
@@ -81,14 +85,60 @@ public class ExternalJobController {
             @RequestParam(defaultValue = "1") int startPage,
             @RequestParam(defaultValue = "12") int pageSize,
             @RequestParam(defaultValue = "12") int numOfRows,
-            @RequestParam(required = false) String region) {
+            @RequestParam(required = false) String region,
+            HttpServletRequest request) {
         return ResponseEntity.ok(ApiResponse.success(
-                externalJobService.findJunnamPublicJobs(startPage, pageSize, numOfRows, region)));
+                externalJobService.findJunnamPublicJobs(startPage, pageSize, numOfRows,
+                        resolveRegion(region, request))));
     }
 
     @GetMapping("/junnam/{jobKey}")
     public ResponseEntity<ApiResponse<JunnamPublicJobDetailResponse>> junnamPublicJobDetail(
             @PathVariable String jobKey) {
         return ResponseEntity.ok(ApiResponse.success(externalJobService.findJunnamPublicJobDetail(jobKey)));
+    }
+
+    private String resolveRegion(String boundRegion, HttpServletRequest request) {
+        String region = hasText(boundRegion) ? boundRegion : rawQueryParam(request.getQueryString(), "region");
+        if (!hasText(region)) {
+            return null;
+        }
+        return normalizeRegion(region);
+    }
+
+    private String rawQueryParam(String queryString, String name) {
+        if (!hasText(queryString)) {
+            return null;
+        }
+        for (String part : queryString.split("&")) {
+            int separator = part.indexOf('=');
+            String key = separator < 0 ? part : part.substring(0, separator);
+            if (name.equals(decode(key))) {
+                return separator < 0 ? "" : decode(part.substring(separator + 1));
+            }
+        }
+        return null;
+    }
+
+    private String normalizeRegion(String region) {
+        String decoded = decode(region).trim();
+        if (containsKorean(decoded)) {
+            return decoded;
+        }
+
+        String restored = new String(decoded.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+        return containsKorean(restored) ? restored.trim() : decoded;
+    }
+
+    private String decode(String value) {
+        return URLDecoder.decode(value, StandardCharsets.UTF_8);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private boolean containsKorean(String value) {
+        return value.codePoints().anyMatch(codePoint -> codePoint >= 0xAC00 && codePoint <= 0xD7A3);
     }
 }

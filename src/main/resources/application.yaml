@@ -65,8 +65,8 @@ google:
   redirect-uri: ${GOOGLE_REDIRECT_URI}
 
 frontend:
-  oauth-callback-uri: ${FRONTEND_OAUTH_CALLBACK_URI}
-  origin: ${FRONTEND_ORIGIN}
+  oauth-callback-uri: ${FRONTEND_OAUTH_CALLBACK_URI:http://localhost:5173/oauth/callback}
+  origin: ${FRONTEND_ORIGIN:http://localhost:5173}
 
 gathering:
   cleanup:
