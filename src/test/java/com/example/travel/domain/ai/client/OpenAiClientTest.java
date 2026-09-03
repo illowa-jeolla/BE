@@ -47,7 +47,8 @@ class OpenAiClientTest {
 
     @Test
     void rejectsMissingApiConfigurationWithoutCallingTransport() {
-        OpenAiProperties properties = new OpenAiProperties("", "gpt-test", "https://example.com");
+        OpenAiProperties properties = new OpenAiProperties("", "gpt-test", "https://example.com",
+                "text-embedding-3-small", 1536);
         OpenAiClient client = new OpenAiClient(properties, request -> {
             throw new AssertionError("transport must not be called");
         });
@@ -62,7 +63,8 @@ class OpenAiClientTest {
     @Test
     void rejectsBlankBaseUrlWithoutBuildingTheHttpTransport() {
         OpenAiClient client = new OpenAiClient(
-                new OpenAiProperties("test-key", "gpt-test", " "));
+                new OpenAiProperties("test-key", "gpt-test", " ",
+                        "text-embedding-3-small", 1536));
 
         assertThatThrownBy(() -> client.generateStructured("i", "d",
                 OBJECT_MAPPER.createObjectNode()))
@@ -83,6 +85,7 @@ class OpenAiClientTest {
     }
 
     private OpenAiProperties properties() {
-        return new OpenAiProperties("test-key", "gpt-test", "https://example.com");
+        return new OpenAiProperties("test-key", "gpt-test", "https://example.com",
+                "text-embedding-3-small", 1536);
     }
 }
