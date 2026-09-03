@@ -38,6 +38,7 @@ ai seclet session.md
 /postman sharing.md
 /sharing api spec.md
 /sharing session.md
+/ai match api spec.md
 
 ### Local environment configuration ###
 .env
