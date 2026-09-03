@@ -9,6 +9,7 @@ public enum AiMatchErrorCode implements ErrorCode {
     REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "AI_MATCH_404_REQUEST", "AI 매칭 요청을 찾을 수 없습니다."),
     RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "AI_MATCH_404_RESULT", "AI 매칭 결과를 찾을 수 없습니다."),
     CACHE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AI_MATCH_503_CACHE", "AI 매칭 임시 저장소를 사용할 수 없습니다."),
+    DAILY_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "AI_MATCH_429_DAILY_LIMIT", "AI 매칭은 하루에 최대 2번 요청할 수 있습니다."),
     CANDIDATE_NOT_FOUND(HttpStatus.UNPROCESSABLE_ENTITY, "AI_MATCH_422_CANDIDATE", "추천 가능한 일자리 또는 관광지가 부족합니다."),
     INVALID_AI_RESPONSE(HttpStatus.BAD_GATEWAY, "AI_MATCH_502_INVALID_RESPONSE", "AI 추천 결과를 검증할 수 없습니다.");
 

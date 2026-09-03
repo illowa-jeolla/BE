@@ -23,13 +23,16 @@ public class AiMatchService {
     private final AiMatchRequestCacheService cacheService;
     private final RegionRepository regionRepository;
     private final UserRepository userRepository;
+    private final AiMatchDailyLimitService dailyLimitService;
     private final ApplicationEventPublisher publisher;
     private final Clock clock;
 
     public AiMatchService(AiMatchRequestCacheService cacheService, RegionRepository regionRepository,
-                          UserRepository userRepository, ApplicationEventPublisher publisher, Clock clock) {
+                          UserRepository userRepository, AiMatchDailyLimitService dailyLimitService,
+                          ApplicationEventPublisher publisher, Clock clock) {
         this.cacheService = cacheService; this.regionRepository = regionRepository;
-        this.userRepository = userRepository; this.publisher = publisher; this.clock = clock;
+        this.userRepository = userRepository; this.dailyLimitService = dailyLimitService;
+        this.publisher = publisher; this.clock = clock;
     }
 
     public CreateAiMatchResponse create(Long userId, CreateAiMatchRequest request) {
@@ -43,6 +46,7 @@ public class AiMatchService {
         if (userRepository.findByIdAndStatus(userId, UserStatus.ACTIVE).isEmpty()) {
             throw new AiMatchException(AiMatchErrorCode.REQUEST_NOT_FOUND);
         }
+        dailyLimitService.acquire(userId);
         UUID requestId = UUID.randomUUID();
         cacheService.save(new AiMatchRequestContext(requestId, userId, request.preferredRegionId(),
                 request.desiredJobs(), request.priorities(), request.thought(), AiRequestStatus.PROCESSING,

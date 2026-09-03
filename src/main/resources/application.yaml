@@ -97,6 +97,7 @@ openai:
 
 ai-match:
   request-ttl: ${AI_MATCH_REQUEST_TTL:1h}
+  daily-limit: ${AI_MATCH_DAILY_LIMIT:2}
   sync:
     tour-place-cron: ${AI_MATCH_TOUR_PLACE_CRON:0 0 2 * * *}
     junnam-job-cron: ${AI_MATCH_JUNNAM_JOB_CRON:0 30 2 * * *}
