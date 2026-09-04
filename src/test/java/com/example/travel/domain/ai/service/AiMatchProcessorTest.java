@@ -73,8 +73,8 @@ class AiMatchProcessorTest {
         when(promptService.schema()).thenReturn(new ObjectMapper().createObjectNode());
         when(openAiClient.generateStructured(anyString(), eq("input"), any())).thenReturn("""
                 {"summary":"관광지 추천", "housingScore":80, "communityScore":70,
-                 "jobs":[{"id":4,"reason":"바다와 관련된 직무입니다."}],
-                 "places":[{"id":3,"reason":"바다와 가깝습니다."}]}
+                 "jobs":[{"id":4,"reason":"첫 번째 이유"},{"id":4,"reason":"중복 이유"}],
+                 "places":[{"id":3,"reason":"첫 번째 이유"},{"id":3,"reason":"중복 이유"}]}
                 """);
 
         processor.process(requestId);
@@ -87,10 +87,14 @@ class AiMatchProcessorTest {
         assertThat(response.getValue().results().get(0).jobStatus().message())
                 .isEqualTo("선택한 지역에 추천 가능한 일자리가 없어 다른 지역의 일자리로 대체했습니다.");
         assertThat(response.getValue().results().get(0).jobs()).hasSize(1);
+        assertThat(response.getValue().results().get(0).jobs().get(0).matchScore()).isEqualTo(85);
+        assertThat(response.getValue().results().get(0).jobs().get(0).reason()).isEqualTo("첫 번째 이유");
         assertThat(response.getValue().results().get(0).jobs().get(0).region().name()).isEqualTo("보성");
         assertThat(response.getValue().results().get(0).tourismStatus().status())
                 .isEqualTo(AiMatchResultResponse.SectionState.SUCCESS);
         assertThat(response.getValue().results().get(0).places()).hasSize(1);
+        assertThat(response.getValue().results().get(0).places().get(0).matchScore()).isEqualTo(90);
+        assertThat(response.getValue().results().get(0).places().get(0).reason()).isEqualTo("첫 번째 이유");
         verify(cache).delete(requestId);
     }
 }

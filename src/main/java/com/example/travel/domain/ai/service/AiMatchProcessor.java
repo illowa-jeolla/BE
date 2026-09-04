@@ -19,8 +19,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -74,7 +76,9 @@ public class AiMatchProcessor {
                                            List<JobMatch> jobs, List<PlaceMatch> places,
                                            AiSelection selection, boolean jobsReplaced) {
         Map<Long, JobMatch> jobMap = mapJobs(jobs); Map<Long, PlaceMatch> placeMap = mapPlaces(places);
+        Set<Long> selectedJobIds = new HashSet<>();
         List<AiMatchResultResponse.Job> selectedJobs = selection.jobs().stream()
+                .filter(value -> selectedJobIds.add(value.id()))
                 .filter(value -> jobMap.containsKey(value.id())).map(value -> {
             JobMatch match = jobMap.get(value.id()); AiJobCandidate job = match.candidate();
             AiMatchResultResponse.Region jobRegion = match.regionId() == null
@@ -84,7 +88,9 @@ public class AiMatchProcessor {
                     job.getCompanyName(), job.getAddress(), job.getDeadline(), job.getSourceUrl(),
                     score(match.similarity()), value.reason());
         }).toList();
+        Set<Long> selectedPlaceIds = new HashSet<>();
         List<AiMatchResultResponse.Place> selectedPlaces = selection.places().stream()
+                .filter(value -> selectedPlaceIds.add(value.id()))
                 .filter(value -> placeMap.containsKey(value.id())).map(value -> {
             PlaceMatch match = placeMap.get(value.id()); AiTourPlaceCandidate place = match.candidate();
             return new AiMatchResultResponse.Place(place.getExternalId(), place.getName(), place.getCategory(),

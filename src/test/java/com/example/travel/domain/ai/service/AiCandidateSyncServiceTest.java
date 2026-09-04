@@ -25,10 +25,13 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 
 class AiCandidateSyncServiceTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 9, 3);
@@ -93,7 +96,10 @@ class AiCandidateSyncServiceTest {
         });
         when(placeRepository.findAllBySourceAndActiveTrueAndLastSeenAtBefore(any(), any()))
                 .thenReturn(List.of());
-        when(embeddingClient.embed(anyList())).thenReturn(List.of(new float[1536]));
+        when(embeddingClient.embed(anyList())).thenAnswer(invocation -> {
+            List<String> inputs = invocation.getArgument(0);
+            return inputs.stream().map(input -> new float[1536]).toList();
+        });
         AiCandidateSyncService service = new AiCandidateSyncService(tourClient,
                 mock(JunnamPublicJobApiClient.class), mock(ExternalJobService.class), regionRepository,
                 placeRepository, mock(AiJobCandidateRepository.class), embeddingClient,
@@ -105,8 +111,76 @@ class AiCandidateSyncServiceTest {
         assertThat(persisted.get().getRegion()).isSameAs(yeosu);
     }
 
+    @Test
+    void invalidatesOldEmbeddingBeforeChangedCandidateEmbeddingFails() {
+        TourInfoClient tourClient = mock(TourInfoClient.class);
+        RegionRepository regionRepository = mock(RegionRepository.class);
+        AiTourPlaceCandidateRepository placeRepository = mock(AiTourPlaceCandidateRepository.class);
+        OpenAiEmbeddingClient embeddingClient = mock(OpenAiEmbeddingClient.class);
+        Region yeosu = Region.createSupportedCity("여수", new BigDecimal("34.7604"), new BigDecimal("127.6622"));
+        AiTourPlaceCandidate existing = AiTourPlaceCandidate.create("100", yeosu, "이전 이름",
+                "A01", "전라남도 여수시", null, null,
+                new BigDecimal("34.7"), new BigDecimal("127.7"),
+                java.time.OffsetDateTime.parse("2026-09-02T00:00:00Z"));
+        existing.updateEmbedding(new float[1536], "embedding", "old-hash",
+                java.time.OffsetDateTime.parse("2026-09-02T00:00:00Z"));
+        TourPlaceItem changed = new TourPlaceItem("100", "12", "A01", "A0101", "A01010100",
+                "변경된 이름", "전라남도 여수시", null,
+                new BigDecimal("127.7"), new BigDecimal("34.7"), null);
+
+        when(regionRepository.findAllByActiveTrueOrderByNameAsc()).thenReturn(List.of(yeosu));
+        when(tourClient.findPlacesNearby(yeosu.getLatitude(), yeosu.getLongitude(), 20_000, 1, 30))
+                .thenReturn(new TourPlaceMapResponse(1, 30, 1, List.of(changed)));
+        when(placeRepository.findBySourceAndExternalId(ExternalCandidateSource.TOUR_INFO, "100"))
+                .thenReturn(Optional.of(existing));
+        when(placeRepository.save(any(AiTourPlaceCandidate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(embeddingClient.embed(anyList())).thenThrow(new RuntimeException("embedding unavailable"));
+        AiCandidateSyncService service = service(tourClient, regionRepository, placeRepository, embeddingClient);
+
+        assertThatThrownBy(service::syncTourPlaces).isInstanceOf(RuntimeException.class);
+        assertThat(existing.getEmbedding()).isNull();
+    }
+
+    @Test
+    void skipsDeactivationWhenTourPlacePaginationEndsWithUnexpectedEmptyPage() {
+        TourInfoClient tourClient = mock(TourInfoClient.class);
+        RegionRepository regionRepository = mock(RegionRepository.class);
+        AiTourPlaceCandidateRepository placeRepository = mock(AiTourPlaceCandidateRepository.class);
+        OpenAiEmbeddingClient embeddingClient = mock(OpenAiEmbeddingClient.class);
+        Region yeosu = Region.createSupportedCity("여수", new BigDecimal("34.7604"), new BigDecimal("127.6622"));
+
+        when(regionRepository.findAllByActiveTrueOrderByNameAsc()).thenReturn(List.of(yeosu));
+        when(tourClient.findPlacesNearby(yeosu.getLatitude(), yeosu.getLongitude(), 20_000, 1, 30))
+                .thenReturn(new TourPlaceMapResponse(1, 30, 31, List.of(place("100", "전라남도 여수시"))));
+        when(tourClient.findPlacesNearby(yeosu.getLatitude(), yeosu.getLongitude(), 20_000, 2, 30))
+                .thenReturn(new TourPlaceMapResponse(2, 30, 31, List.of()));
+        when(placeRepository.findBySourceAndExternalId(any(), any())).thenReturn(Optional.empty());
+        when(placeRepository.save(any(AiTourPlaceCandidate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(embeddingClient.embed(anyList())).thenAnswer(invocation -> {
+            List<String> inputs = invocation.getArgument(0);
+            return inputs.stream().map(input -> new float[1536]).toList();
+        });
+        AiCandidateSyncService service = service(tourClient, regionRepository, placeRepository, embeddingClient);
+
+        service.syncTourPlaces();
+
+        verify(placeRepository, never()).findAllBySourceAndActiveTrueAndLastSeenAtBefore(any(), any());
+    }
+
+    private AiCandidateSyncService service(TourInfoClient tourClient, RegionRepository regionRepository,
+                                           AiTourPlaceCandidateRepository placeRepository,
+                                           OpenAiEmbeddingClient embeddingClient) {
+        return new AiCandidateSyncService(tourClient, mock(JunnamPublicJobApiClient.class),
+                mock(ExternalJobService.class), regionRepository, placeRepository,
+                mock(AiJobCandidateRepository.class), embeddingClient,
+                new OpenAiProperties("key", "model", "https://example.com", "embedding", 1536),
+                Clock.fixed(Instant.parse("2026-09-03T00:00:00Z"), ZoneOffset.UTC));
+    }
+
     private TourPlaceItem place(String contentId, String address) {
+        BigDecimal mapX = new BigDecimal("127.7");
+        BigDecimal mapY = new BigDecimal("34.7");
         return new TourPlaceItem(contentId, "12", "A01", "A0101", "A01010100",
-                "중복 관광지", address, null, new BigDecimal("127.7"), new BigDecimal("34.7"), null);
+                "중복 관광지", address, null, mapX, mapY, null);
     }
 }

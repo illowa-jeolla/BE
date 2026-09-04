@@ -82,6 +82,28 @@ class OpenAiClientTest {
     }
 
     @Test
+    void disablesEmbeddingForNonHttpsBaseUrl() {
+        OpenAiProperties properties = new OpenAiProperties("test-key", "gpt-test", "http://example.com",
+                "text-embedding-3-small", 1536);
+        OpenAiEmbeddingClient client = new OpenAiEmbeddingClient(properties);
+
+        assertThat(properties.isEmbeddingConfigured()).isFalse();
+        assertThatThrownBy(() -> client.embedOne("travel job"))
+                .isInstanceOf(OpenAiException.class)
+                .extracting("code")
+                .isEqualTo(OpenAiErrorCode.NOT_CONFIGURED.code());
+    }
+
+    @Test
+    void disablesEmbeddingForBaseUrlWithoutScheme() {
+        OpenAiProperties properties = new OpenAiProperties("test-key", "gpt-test", "example.com",
+                "text-embedding-3-small", 1536);
+
+        assertThat(properties.isEmbeddingConfigured()).isFalse();
+        new OpenAiEmbeddingClient(properties);
+    }
+
+    @Test
     void rejectsResponseWithoutOutputText() {
         OpenAiClient client = new OpenAiClient(properties(), request -> "{\"output\":[]}");
 

@@ -28,12 +28,12 @@ public class OpenAiEmbeddingClient {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(3));
         factory.setReadTimeout(Duration.ofSeconds(30));
-        this.restClient = RestClient.builder()
-                .baseUrl(properties.baseUrl())
+        RestClient.Builder builder = RestClient.builder()
                 .requestFactory(factory)
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + properties.apiKey())
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .build();
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        if (properties.hasHttpsBaseUrl()) builder.baseUrl(properties.baseUrl());
+        this.restClient = builder.build();
     }
 
     public List<float[]> embed(List<String> inputs) {

@@ -63,6 +63,9 @@ public class AiCandidateSyncService {
         Map<String, AiTourPlaceCandidate> changed = new LinkedHashMap<>();
         List<Region> activeRegions = regionRepository.findAllByActiveTrueOrderByNameAsc();
         Map<String, Region> regions = regionsByName(activeRegions);
+        Set<String> observedExternalIds = new HashSet<>();
+        boolean collectionComplete = true;
+        boolean receivedAnyItems = false;
         int added = 0;
         for (Region region : activeRegions) {
             if (region.getLatitude() == null || region.getLongitude() == null) continue;
@@ -71,8 +74,14 @@ public class AiCandidateSyncService {
                 TourPlaceMapResponse response = tourInfoClient.findPlacesNearby(region.getLatitude(),
                         region.getLongitude(), TOUR_RADIUS_METERS, page, 30);
                 total = response.totalCount();
+                if (response.items().isEmpty()) {
+                    collectionComplete = false;
+                    break;
+                }
+                receivedAnyItems = true;
                 for (TourPlaceItem item : response.items()) {
                     if (blank(item.contentId()) || blank(item.title())) continue;
+                    observedExternalIds.add(item.contentId());
                     Optional<AiTourPlaceCandidate> existing = placeRepository
                             .findBySourceAndExternalId(ExternalCandidateSource.TOUR_INFO, item.contentId());
                     Region candidateRegion = resolvePlaceRegion(item, existing.orElse(null), region,
@@ -85,18 +94,24 @@ public class AiCandidateSyncService {
                             item.thumbnailUrl(), item.mapY(), item.mapX(), startedAt);
                     String text = placeText(candidate); String hash = sha256(text);
                     if (candidate.requiresEmbedding(hash, openAiProperties.embeddingModel())) {
+                        candidate.invalidateEmbedding();
                         changed.put(item.contentId(), candidate);
                     }
                     placeRepository.save(candidate);
                 }
-                if (response.items().isEmpty()) break;
                 page++;
             } while ((page - 1) * 30 < total);
         }
         embedPlaces(new ArrayList<>(changed.values()), startedAt);
-        List<AiTourPlaceCandidate> deactivated = placeRepository
-                .findAllBySourceAndActiveTrueAndLastSeenAtBefore(ExternalCandidateSource.TOUR_INFO, startedAt);
-        deactivated.forEach(value -> { value.deactivate(startedAt); placeRepository.save(value); });
+        List<AiTourPlaceCandidate> deactivated = List.of();
+        if (collectionComplete && receivedAnyItems) {
+            deactivated = placeRepository
+                    .findAllBySourceAndActiveTrueAndLastSeenAtBefore(ExternalCandidateSource.TOUR_INFO, startedAt)
+                    .stream().filter(value -> !observedExternalIds.contains(value.getExternalId())).toList();
+            deactivated.forEach(value -> { value.deactivate(startedAt); placeRepository.save(value); });
+        } else {
+            log.warn("AI 관광지 후보 수집이 비어 있거나 완료되지 않아 기존 후보 비활성화를 건너뜁니다.");
+        }
         log.info("AI 관광지 후보 비교 결과: {}건 추가했습니다. {}건의 임베딩을 갱신했습니다. {}건 비활성화했습니다.",
                 added, Math.max(0, changed.size() - added), deactivated.size());
     }
@@ -104,12 +119,20 @@ public class AiCandidateSyncService {
     public void syncJunnamJobs() {
         OffsetDateTime startedAt = OffsetDateTime.now(clock); List<AiJobCandidate> changed = new ArrayList<>();
         Map<String, Region> regions = regionsByName();
+        Set<String> observedExternalIds = new HashSet<>();
+        boolean collectionComplete = true;
+        boolean receivedAnyItems = false;
         int added = 0;
         int excluded = 0;
         int page = 1; int total;
         do {
             JunnamPublicJobListResponse response = junnamClient.findJobs(page, 100, 100);
             total = response.totalCount();
+            if (response.items().isEmpty()) {
+                collectionComplete = false;
+                break;
+            }
+            receivedAnyItems = true;
             for (JunnamPublicJobItem item : response.items()) {
                 String externalId = first(item.rawFields(), "jobKey", "id", "seq", "nttId");
                 if (blank(externalId)) externalId = sha256(text(item.title()) + '|' + text(item.companyName()) + '|' + text(item.address()));
@@ -120,6 +143,7 @@ public class AiCandidateSyncService {
                     excluded++;
                     continue;
                 }
+                observedExternalIds.add(externalId);
                 String resolvedExternalId = externalId;
                 Region region = resolveJunnamRegion(item, regions);
                 Optional<AiJobCandidate> existing = jobRepository
@@ -137,10 +161,14 @@ public class AiCandidateSyncService {
                         item.homepageUrl(), startedAt);
                 collectJobEmbedding(candidate, changed); jobRepository.save(candidate);
             }
-            if (response.items().isEmpty()) break; page++;
+            page++;
         } while ((page - 1) * 100 < total);
         embedJobs(changed, startedAt);
-        int deactivated = deactivateJobs(ExternalCandidateSource.JUNNAM_PUBLIC_JOB, startedAt);
+        int deactivated = collectionComplete && receivedAnyItems
+                ? deactivateJobs(ExternalCandidateSource.JUNNAM_PUBLIC_JOB, startedAt, observedExternalIds) : 0;
+        if (!collectionComplete || !receivedAnyItems) {
+            log.warn("AI 전남 일자리 후보 수집이 비어 있거나 완료되지 않아 기존 후보 비활성화를 건너뜁니다.");
+        }
         log.info("AI 전남 일자리 후보 비교 결과: {}건 추가했습니다. {}건의 임베딩을 갱신했습니다. {}건 제외하고 {}건 비활성화했습니다.",
                 added, Math.max(0, changed.size() - added), excluded, deactivated);
     }
@@ -148,6 +176,9 @@ public class AiCandidateSyncService {
     public void syncTourJobs() {
         OffsetDateTime startedAt = OffsetDateTime.now(clock); List<AiJobCandidate> changed = new ArrayList<>();
         Map<String, Region> regions = regionsByName();
+        Set<String> observedExternalIds = new HashSet<>();
+        boolean collectionComplete = true;
+        boolean receivedAnyItems = false;
         int added = 0;
         int excluded = 0;
         int page = 1; int total;
@@ -156,6 +187,11 @@ public class AiCandidateSyncService {
                     new TourJobSearchCondition(page, 100, "D", null,
                     null, null, null, null, null, null, null, null, null, null, null, null));
             total = response.totalCount();
+            if (response.items().isEmpty()) {
+                collectionComplete = false;
+                break;
+            }
+            receivedAnyItems = true;
             for (TourJobItem item : response.items()) {
                 if (blank(item.employmentInfoNo()) || blank(item.title())) continue;
                 LocalDate postedAt = date(item.registeredAt());
@@ -164,6 +200,7 @@ public class AiCandidateSyncService {
                     excluded++;
                     continue;
                 }
+                observedExternalIds.add(item.employmentInfoNo());
                 Region region = resolveRegion(item.workplaceAddress(), regions);
                 Optional<AiJobCandidate> existing = jobRepository
                         .findBySourceAndExternalId(ExternalCandidateSource.TOUR_JOB, item.employmentInfoNo());
@@ -176,10 +213,14 @@ public class AiCandidateSyncService {
                         item.employmentTypeCode1(), item.wageAmount(), postedAt, deadline, null, startedAt);
                 collectJobEmbedding(candidate, changed); jobRepository.save(candidate);
             }
-            if (response.items().isEmpty()) break; page++;
+            page++;
         } while ((page - 1) * 100 < total);
         embedJobs(changed, startedAt);
-        int deactivated = deactivateJobs(ExternalCandidateSource.TOUR_JOB, startedAt);
+        int deactivated = collectionComplete && receivedAnyItems
+                ? deactivateJobs(ExternalCandidateSource.TOUR_JOB, startedAt, observedExternalIds) : 0;
+        if (!collectionComplete || !receivedAnyItems) {
+            log.warn("AI 관광 일자리 후보 수집이 비어 있거나 완료되지 않아 기존 후보 비활성화를 건너뜁니다.");
+        }
         log.info("AI 전남·광주 관광 일자리 후보 비교 결과: {}건 추가했습니다. {}건의 임베딩을 갱신했습니다. {}건 제외하고 {}건 비활성화했습니다.",
                 added, Math.max(0, changed.size() - added), excluded, deactivated);
     }
@@ -194,7 +235,10 @@ public class AiCandidateSyncService {
 
     private void collectJobEmbedding(AiJobCandidate candidate, List<AiJobCandidate> changed) {
         String text = jobText(candidate); String hash = sha256(text);
-        if (candidate.requiresEmbedding(hash, openAiProperties.embeddingModel())) changed.add(candidate);
+        if (candidate.requiresEmbedding(hash, openAiProperties.embeddingModel())) {
+            candidate.invalidateEmbedding();
+            changed.add(candidate);
+        }
     }
     private void embedJobs(List<AiJobCandidate> values, OffsetDateTime now) {
         for (int from = 0; from < values.size(); from += EMBEDDING_BATCH_SIZE) {
@@ -214,9 +258,11 @@ public class AiCandidateSyncService {
             placeRepository.saveAll(batch);
         }
     }
-    private int deactivateJobs(ExternalCandidateSource source, OffsetDateTime startedAt) {
+    private int deactivateJobs(ExternalCandidateSource source, OffsetDateTime startedAt,
+                               Set<String> observedExternalIds) {
         List<AiJobCandidate> values = jobRepository
-                .findAllBySourceAndActiveTrueAndLastSeenAtBefore(source, startedAt);
+                .findAllBySourceAndActiveTrueAndLastSeenAtBefore(source, startedAt).stream()
+                .filter(value -> !observedExternalIds.contains(value.getExternalId())).toList();
         values.forEach(value -> { value.deactivate(startedAt); jobRepository.save(value); });
         return values.size();
     }

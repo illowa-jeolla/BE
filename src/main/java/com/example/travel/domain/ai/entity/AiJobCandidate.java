@@ -86,5 +86,10 @@ public class AiJobCandidate {
         this.embedding = embedding; this.embeddingModel = model; this.embeddingSourceHash = hash; this.embeddedAt = now;
     }
 
+    public void invalidateEmbedding() {
+        this.embedding = null; this.embeddingModel = null;
+        this.embeddingSourceHash = null; this.embeddedAt = null;
+    }
+
     public void deactivate(OffsetDateTime now) { this.active = false; this.inactiveAt = now; }
 }

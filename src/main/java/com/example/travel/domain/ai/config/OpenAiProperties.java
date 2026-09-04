@@ -2,6 +2,8 @@ package com.example.travel.domain.ai.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.net.URI;
+
 @ConfigurationProperties(prefix = "openai")
 public record OpenAiProperties(String apiKey, String model, String baseUrl,
                                String embeddingModel, Integer embeddingDimensions) {
@@ -21,8 +23,18 @@ public record OpenAiProperties(String apiKey, String model, String baseUrl,
 
     public boolean isEmbeddingConfigured() {
         return apiKey != null && !apiKey.isBlank()
-                && baseUrl != null && !baseUrl.isBlank()
+                && hasHttpsBaseUrl()
                 && embeddingModel != null && !embeddingModel.isBlank()
                 && embeddingDimensions != null && embeddingDimensions == STORAGE_EMBEDDING_DIMENSIONS;
+    }
+
+    public boolean hasHttpsBaseUrl() {
+        if (baseUrl == null || baseUrl.isBlank()) return false;
+        try {
+            URI uri = URI.create(baseUrl);
+            return "https".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null;
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
     }
 }
