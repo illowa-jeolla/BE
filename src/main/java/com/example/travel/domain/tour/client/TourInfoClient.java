@@ -29,7 +29,7 @@ import java.util.function.Function;
 public class TourInfoClient {
     private static final int MAX_RADIUS = 20_000;
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
-    private static final Duration READ_TIMEOUT = Duration.ofSeconds(7);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(20);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final TourInfoProperties properties;
