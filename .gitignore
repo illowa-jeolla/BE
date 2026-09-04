@@ -39,6 +39,7 @@ ai seclet session.md
 /sharing api spec.md
 /sharing session.md
 /ai match api spec.md
+/ai match technical note.md
 
 ### Local environment configuration ###
 .env
