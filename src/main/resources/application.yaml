@@ -48,7 +48,6 @@ community:
     zone: Asia/Seoul
 
 jwt:
-  # 운영 환경에서는 반드시 충분히 긴 무작위 값으로 교체하세요.
   secret-key: ${JWT_SECRET}
   access-token-expiration: ${JWT_ACCESS_EXPIRATION}
   refresh-token-expiration: ${JWT_REFRESH_EXPIRATION}
