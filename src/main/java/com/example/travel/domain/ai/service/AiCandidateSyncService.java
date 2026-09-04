@@ -18,6 +18,7 @@ import com.example.travel.domain.tour.dto.TourPlaceMapResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -60,8 +61,10 @@ public class AiCandidateSyncService {
     public void syncTourPlaces() {
         OffsetDateTime startedAt = OffsetDateTime.now(clock);
         Map<String, AiTourPlaceCandidate> changed = new LinkedHashMap<>();
+        List<Region> activeRegions = regionRepository.findAllByActiveTrueOrderByNameAsc();
+        Map<String, Region> regions = regionsByName(activeRegions);
         int added = 0;
-        for (Region region : regionRepository.findAllByActiveTrueOrderByNameAsc()) {
+        for (Region region : activeRegions) {
             if (region.getLatitude() == null || region.getLongitude() == null) continue;
             int page = 1; int total;
             do {
@@ -72,11 +75,13 @@ public class AiCandidateSyncService {
                     if (blank(item.contentId()) || blank(item.title())) continue;
                     Optional<AiTourPlaceCandidate> existing = placeRepository
                             .findBySourceAndExternalId(ExternalCandidateSource.TOUR_INFO, item.contentId());
+                    Region candidateRegion = resolvePlaceRegion(item, existing.orElse(null), region,
+                            activeRegions, regions);
                     AiTourPlaceCandidate candidate = existing.orElseGet(() -> AiTourPlaceCandidate.create(
-                            item.contentId(), region, item.title(), category(item), item.address(), null,
+                            item.contentId(), candidateRegion, item.title(), category(item), item.address(), null,
                             item.thumbnailUrl(), item.mapY(), item.mapX(), startedAt));
                     if (existing.isEmpty()) added++;
-                    candidate.refresh(region, item.title(), category(item), item.address(), candidate.getDescription(),
+                    candidate.refresh(candidateRegion, item.title(), category(item), item.address(), candidate.getDescription(),
                             item.thumbnailUrl(), item.mapY(), item.mapX(), startedAt);
                     String text = placeText(candidate); String hash = sha256(text);
                     if (candidate.requiresEmbedding(hash, openAiProperties.embeddingModel())) {
@@ -179,6 +184,7 @@ public class AiCandidateSyncService {
                 added, Math.max(0, changed.size() - added), excluded, deactivated);
     }
 
+    @Transactional
     public void cleanupInactive() {
         OffsetDateTime now = OffsetDateTime.now(clock);
         long deletedJobs = jobRepository.deleteByActiveFalseAndInactiveAtBefore(now.minusDays(30));
@@ -222,10 +228,37 @@ public class AiCandidateSyncService {
     }
 
     private Map<String, Region> regionsByName() {
+        return regionsByName(regionRepository.findAllByActiveTrueOrderByNameAsc());
+    }
+
+    private Map<String, Region> regionsByName(List<Region> activeRegions) {
         Map<String, Region> regions = new LinkedHashMap<>();
-        regionRepository.findAllByActiveTrueOrderByNameAsc()
-                .forEach(region -> regions.put(normalizeRegionName(region.getName()), region));
+        activeRegions.forEach(region -> regions.put(normalizeRegionName(region.getName()), region));
         return regions;
+    }
+
+    private Region resolvePlaceRegion(TourPlaceItem item, AiTourPlaceCandidate existing, Region searchRegion,
+                                      List<Region> activeRegions, Map<String, Region> regions) {
+        Region addressRegion = resolveRegion(item.address(), regions);
+        if (addressRegion != null) return addressRegion;
+        if (existing != null && existing.getRegion() != null) return existing.getRegion();
+        Region coordinateRegion = nearestRegion(item.mapY(), item.mapX(), activeRegions);
+        return coordinateRegion != null ? coordinateRegion : searchRegion;
+    }
+
+    private Region nearestRegion(java.math.BigDecimal latitude, java.math.BigDecimal longitude,
+                                 List<Region> regions) {
+        if (latitude == null || longitude == null) return null;
+        double lat = latitude.doubleValue();
+        double lon = longitude.doubleValue();
+        return regions.stream()
+                .filter(region -> region.getLatitude() != null && region.getLongitude() != null)
+                .min(Comparator.comparingDouble(region -> {
+                    double latDiff = lat - region.getLatitude().doubleValue();
+                    double lonDiff = lon - region.getLongitude().doubleValue();
+                    return latDiff * latDiff + lonDiff * lonDiff;
+                }))
+                .orElse(null);
     }
 
     private Region resolveRegion(String value, Map<String, Region> regions) {

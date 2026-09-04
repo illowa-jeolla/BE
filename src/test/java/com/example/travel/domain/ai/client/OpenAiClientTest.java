@@ -74,6 +74,14 @@ class OpenAiClientTest {
     }
 
     @Test
+    void rejectsEmbeddingDimensionThatDoesNotMatchVectorStorage() {
+        assertThatThrownBy(() -> new OpenAiProperties("test-key", "gpt-test", "https://example.com",
+                "text-embedding-3-small", 3072))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("1536");
+    }
+
+    @Test
     void rejectsResponseWithoutOutputText() {
         OpenAiClient client = new OpenAiClient(properties(), request -> "{\"output\":[]}");
 
