@@ -49,6 +49,17 @@ public interface TravelPostRepository extends JpaRepository<TravelPost, Long> {
             select p from TravelPost p
             join fetch p.author
             join fetch p.region
+            where p.author.id = :authorId
+              and p.status = :status
+            """)
+    Page<TravelPost> findPublishedByAuthor(@Param("authorId") Long authorId,
+                                           @Param("status") TravelPostStatus status,
+                                           Pageable pageable);
+
+    @Query("""
+            select p from TravelPost p
+            join fetch p.author
+            join fetch p.region
             where p.id = :postId and p.status = :status
             """)
     Optional<TravelPost> findDetail(@Param("postId") Long postId,
