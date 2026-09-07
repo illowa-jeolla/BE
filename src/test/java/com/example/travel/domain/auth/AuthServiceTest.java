@@ -9,6 +9,7 @@ import com.example.travel.domain.user.repository.LocalCredentialRepository;
 import com.example.travel.domain.user.entity.User;
 import com.example.travel.domain.user.repository.UserRepository;
 import com.example.travel.domain.user.enums.UserStatus;
+import com.example.travel.domain.user.exception.UserException;
 import com.example.travel.global.auth.JwtProvider;
 import com.example.travel.global.auth.RefreshTokenCookieProvider;
 import com.example.travel.global.auth.RefreshTokenService;
@@ -60,6 +61,18 @@ class AuthServiceTest {
         when(credentialRepository.existsByEmail(request.email())).thenReturn(true);
 
         assertDuplicateEmail(() -> authService.signup(request, mock(HttpServletResponse.class)));
+    }
+
+    @Test
+    void rejectsDuplicateNicknameBeforeSaving() {
+        SignupRequest request = signupRequest();
+        when(userRepository.existsByNickname("traveler")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.signup(request, mock(HttpServletResponse.class)))
+                .isInstanceOfSatisfying(UserException.class, exception ->
+                        assertThat(exception.getCode())
+                                .isEqualTo("USER_409_NICKNAME_ALREADY_EXISTS"));
+        verify(userSignupWriter, never()).save(any(), anyString(), anyString());
     }
 
     @Test

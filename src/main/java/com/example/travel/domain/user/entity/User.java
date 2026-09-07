@@ -81,4 +81,8 @@ public class User {
     public void updateAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
     }
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
 }

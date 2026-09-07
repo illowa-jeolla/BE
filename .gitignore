@@ -40,7 +40,7 @@ ai seclet session.md
 /sharing session.md
 /ai match api spec.md
 /ai match technical note.md
-
+/mypage-api-spec.md
 ### Local environment configuration ###
 .env
 .env.*

@@ -10,6 +10,8 @@ import com.example.travel.domain.user.repository.LocalCredentialRepository;
 import com.example.travel.domain.user.entity.User;
 import com.example.travel.domain.user.repository.UserRepository;
 import com.example.travel.domain.user.enums.UserStatus;
+import com.example.travel.domain.user.exception.UserErrorCode;
+import com.example.travel.domain.user.exception.UserException;
 import com.example.travel.global.auth.JwtProvider;
 import com.example.travel.global.auth.RefreshTokenCookieProvider;
 import com.example.travel.global.auth.RefreshTokenService;
@@ -48,10 +50,14 @@ public class AuthService {
 
     public AuthTokenResponse signup(SignupRequest request, HttpServletResponse response) {
         if (credentialRepository.existsByEmail(request.email())) throw duplicateEmail();
+        String nickname = request.nickname().trim();
+        if (userRepository.existsByNickname(nickname)) {
+            throw new UserException(UserErrorCode.NICKNAME_ALREADY_EXISTS);
+        }
 
         User user;
         try {
-            User newUser = User.create(request.nickname());
+            User newUser = User.create(nickname);
             newUser.recordLogin();
             user = userSignupWriter.save(
                     newUser,
