@@ -1,7 +1,7 @@
 package com.example.travel.domain.user.policy;
 
 public final class NicknamePolicy {
-    public static final int MAX_LENGTH = 50;
+    public static final int MAX_LENGTH = 10;
 
     private NicknamePolicy() {}
 

@@ -54,6 +54,18 @@ public class TravelPostService {
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
         var page = postRepository.findPublished(TravelPostStatus.PUBLISHED,
                 request.regionId(), pageable);
+        return toListResponse(page);
+    }
+
+    @Transactional(readOnly = true)
+    public TravelPostListResponse findMine(Long userId, int page, int size) {
+        var pageable = PageRequest.of(page, size,
+                Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+        return toListResponse(postRepository.findPublishedByAuthor(
+                userId, TravelPostStatus.PUBLISHED, pageable));
+    }
+
+    private TravelPostListResponse toListResponse(org.springframework.data.domain.Page<TravelPost> page) {
         var content = page.getContent().stream().map(post -> {
             var images = imageRepository.findAllByPostIdOrderByDisplayOrderAsc(post.getId());
             String thumbnailUrl = images.isEmpty() ? null

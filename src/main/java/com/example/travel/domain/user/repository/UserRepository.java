@@ -14,6 +14,10 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByIdAndStatus(Long id, UserStatus status);
 
+    boolean existsByNickname(String nickname);
+
+    boolean existsByNicknameAndIdNot(String nickname, Long id);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.id = :id and u.status = :status")
     Optional<User> findByIdAndStatusForUpdate(@Param("id") Long id,

@@ -10,11 +10,14 @@ import com.example.travel.domain.user.repository.LocalCredentialRepository;
 import com.example.travel.domain.user.entity.User;
 import com.example.travel.domain.user.repository.UserRepository;
 import com.example.travel.domain.user.enums.UserStatus;
+import com.example.travel.domain.user.exception.UserErrorCode;
+import com.example.travel.domain.user.exception.UserException;
 import com.example.travel.global.auth.JwtProvider;
 import com.example.travel.global.auth.RefreshTokenCookieProvider;
 import com.example.travel.global.auth.RefreshTokenService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -48,10 +51,14 @@ public class AuthService {
 
     public AuthTokenResponse signup(SignupRequest request, HttpServletResponse response) {
         if (credentialRepository.existsByEmail(request.email())) throw duplicateEmail();
+        String nickname = request.nickname().trim();
+        if (userRepository.existsByNickname(nickname)) {
+            throw new UserException(UserErrorCode.NICKNAME_ALREADY_EXISTS);
+        }
 
         User user;
         try {
-            User newUser = User.create(request.nickname());
+            User newUser = User.create(nickname);
             newUser.recordLogin();
             user = userSignupWriter.save(
                     newUser,
@@ -59,6 +66,9 @@ public class AuthService {
                     passwordEncoder.encode(request.password()));
         } catch (DataIntegrityViolationException exception) {
             if (credentialRepository.existsByEmail(request.email())) throw duplicateEmail();
+            if (violatesConstraint(exception, User.NICKNAME_UNIQUE_CONSTRAINT)) {
+                throw new UserException(UserErrorCode.NICKNAME_ALREADY_EXISTS);
+            }
             throw exception;
         }
         return issueTokens(user, response);
@@ -122,5 +132,17 @@ public class AuthService {
 
     private AuthException invalidToken() {
         return new AuthException(AuthErrorCode.INVALID_TOKEN);
+    }
+
+    private boolean violatesConstraint(Throwable exception, String constraintName) {
+        Throwable current = exception;
+        while (current != null) {
+            if (current instanceof ConstraintViolationException violation
+                    && constraintName.equalsIgnoreCase(violation.getConstraintName())) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

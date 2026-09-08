@@ -1,6 +1,7 @@
 package com.example.travel.domain.auth.google;
 
 import com.example.travel.domain.auth.google.dto.GoogleUserInfo;
+import com.example.travel.domain.user.policy.NicknamePolicy;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,17 +23,18 @@ class GoogleUserInfoTest {
         assertThat(new GoogleUserInfo("subject", "user@example.com", true, null, null)
                 .nicknameOrDefault()).isEqualTo("구글사용자");
         assertThat(new GoogleUserInfo("subject", "user@example.com", true,
-                "가".repeat(51), null).nicknameOrDefault()).hasSize(50);
+                "가".repeat(NicknamePolicy.MAX_LENGTH + 1), null).nicknameOrDefault())
+                .hasSize(NicknamePolicy.MAX_LENGTH);
     }
 
     @Test
     void doesNotSplitSurrogatePairAtNicknameBoundary() {
-        String nickname = "a".repeat(49) + "😀";
+        String nickname = "a".repeat(NicknamePolicy.MAX_LENGTH - 1) + "😀";
 
         String result = new GoogleUserInfo(
                 "subject", "user@example.com", true, nickname, null).nicknameOrDefault();
 
-        assertThat(result).isEqualTo("a".repeat(49));
+        assertThat(result).isEqualTo("a".repeat(NicknamePolicy.MAX_LENGTH - 1));
         assertThat(result).doesNotContain("�");
     }
 }
