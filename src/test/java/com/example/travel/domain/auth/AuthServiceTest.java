@@ -20,6 +20,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.hibernate.exception.ConstraintViolationException;
+
+import java.sql.SQLException;
 
 import java.util.Optional;
 
@@ -84,6 +87,22 @@ class AuthServiceTest {
                 .thenThrow(new DataIntegrityViolationException("unique violation"));
 
         assertDuplicateEmail(() -> authService.signup(request, mock(HttpServletResponse.class)));
+    }
+
+    @Test
+    void convertsConcurrentNicknameUniqueViolationToConflict() {
+        SignupRequest request = signupRequest();
+        when(passwordEncoder.encode(request.password())).thenReturn("encoded-password");
+        var cause = new ConstraintViolationException("duplicate nickname",
+                new SQLException("unique violation"), User.NICKNAME_UNIQUE_CONSTRAINT);
+        when(userSignupWriter.save(any(), anyString(), anyString()))
+                .thenThrow(new DataIntegrityViolationException("unique violation", cause));
+
+        assertThatThrownBy(() -> authService.signup(request, mock(HttpServletResponse.class)))
+                .isInstanceOfSatisfying(
+                        com.example.travel.domain.user.exception.UserException.class,
+                        exception -> assertThat(exception.getCode())
+                                .isEqualTo("USER_409_NICKNAME_ALREADY_EXISTS"));
     }
 
     @Test

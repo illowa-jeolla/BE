@@ -8,6 +8,8 @@ import com.example.travel.domain.job.enums.JobFavoriteSource;
 import com.example.travel.domain.job.exception.JobApplicationException;
 import com.example.travel.domain.job.repository.JobApplicationRepository;
 import com.example.travel.domain.user.repository.UserRepository;
+import com.example.travel.domain.user.entity.User;
+import com.example.travel.domain.user.enums.UserStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -33,13 +35,15 @@ class JobApplicationServiceTest {
         when(existing.getStatus()).thenReturn(JobApplicationStatus.APPLIED);
         when(repository.findByUserIdAndSourceAndExternalId(7L, JobFavoriteSource.TOUR_JOB, "tour-1"))
                 .thenReturn(Optional.of(existing));
+        when(userRepository.findByIdAndStatusForUpdate(7L, UserStatus.ACTIVE))
+                .thenReturn(Optional.of(mock(User.class)));
         JobApplicationService service = new JobApplicationService(repository, userRepository);
 
         var response = service.add(7L, request());
 
         assertThat(response.applicationId()).isEqualTo(11L);
         verify(repository, never()).save(any());
-        verifyNoInteractions(userRepository);
+        verify(userRepository).findByIdAndStatusForUpdate(7L, UserStatus.ACTIVE);
     }
 
     @Test

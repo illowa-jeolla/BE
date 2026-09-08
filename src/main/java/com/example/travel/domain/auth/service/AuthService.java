@@ -17,6 +17,7 @@ import com.example.travel.global.auth.RefreshTokenCookieProvider;
 import com.example.travel.global.auth.RefreshTokenService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -65,6 +66,9 @@ public class AuthService {
                     passwordEncoder.encode(request.password()));
         } catch (DataIntegrityViolationException exception) {
             if (credentialRepository.existsByEmail(request.email())) throw duplicateEmail();
+            if (violatesConstraint(exception, User.NICKNAME_UNIQUE_CONSTRAINT)) {
+                throw new UserException(UserErrorCode.NICKNAME_ALREADY_EXISTS);
+            }
             throw exception;
         }
         return issueTokens(user, response);
@@ -128,5 +132,17 @@ public class AuthService {
 
     private AuthException invalidToken() {
         return new AuthException(AuthErrorCode.INVALID_TOKEN);
+    }
+
+    private boolean violatesConstraint(Throwable exception, String constraintName) {
+        Throwable current = exception;
+        while (current != null) {
+            if (current instanceof ConstraintViolationException violation
+                    && constraintName.equalsIgnoreCase(violation.getConstraintName())) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

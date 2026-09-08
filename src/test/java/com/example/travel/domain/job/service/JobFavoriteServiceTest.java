@@ -6,6 +6,8 @@ import com.example.travel.domain.job.enums.JobFavoriteSource;
 import com.example.travel.domain.job.exception.JobFavoriteException;
 import com.example.travel.domain.job.repository.JobFavoriteRepository;
 import com.example.travel.domain.user.repository.UserRepository;
+import com.example.travel.domain.user.entity.User;
+import com.example.travel.domain.user.enums.UserStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -30,13 +32,15 @@ class JobFavoriteServiceTest {
         when(existing.getTitle()).thenReturn("관광 일자리");
         when(repository.findByUserIdAndSourceAndExternalId(7L, JobFavoriteSource.TOUR_JOB, "tour-1"))
                 .thenReturn(Optional.of(existing));
+        when(userRepository.findByIdAndStatusForUpdate(7L, UserStatus.ACTIVE))
+                .thenReturn(Optional.of(mock(User.class)));
         JobFavoriteService service = new JobFavoriteService(repository, userRepository);
 
         var response = service.add(7L, request());
 
         assertThat(response.favoriteId()).isEqualTo(11L);
         verify(repository, never()).save(any());
-        verifyNoInteractions(userRepository);
+        verify(userRepository).findByIdAndStatusForUpdate(7L, UserStatus.ACTIVE);
     }
 
     @Test

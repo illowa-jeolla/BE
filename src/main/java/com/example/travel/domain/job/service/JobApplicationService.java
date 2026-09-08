@@ -26,18 +26,18 @@ public class JobApplicationService {
     @Transactional
     public JobApplicationItem add(Long userId, CreateJobApplicationRequest request) {
         String externalId = request.externalId().trim();
+        var user = userRepository.findByIdAndStatusForUpdate(userId, UserStatus.ACTIVE)
+                .orElseThrow(() -> new JobApplicationException(JobApplicationErrorCode.USER_NOT_FOUND));
         var existing = applicationRepository.findByUserIdAndSourceAndExternalId(
                 userId, request.source(), externalId);
         if (existing.isPresent()) {
             return JobApplicationItem.from(existing.get());
         }
 
-        var user = userRepository.findByIdAndStatus(userId, UserStatus.ACTIVE)
-                .orElseThrow(() -> new JobApplicationException(JobApplicationErrorCode.USER_NOT_FOUND));
         JobApplication application = JobApplication.create(user, request.source(), externalId,
                 request.title().trim(), normalize(request.companyName()), normalize(request.address()),
                 normalize(request.deadline()), normalize(request.sourceUrl()));
-        return JobApplicationItem.from(applicationRepository.save(application));
+        return JobApplicationItem.from(applicationRepository.saveAndFlush(application));
     }
 
     public JobApplicationListResponse findAll(Long userId, int page, int size) {

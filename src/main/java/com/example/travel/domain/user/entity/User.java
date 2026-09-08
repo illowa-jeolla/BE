@@ -11,6 +11,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,9 +21,12 @@ import java.time.OffsetDateTime;
 
 @Getter
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints =
+        @UniqueConstraint(name = User.NICKNAME_UNIQUE_CONSTRAINT, columnNames = "nickname"))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
+    public static final String NICKNAME_UNIQUE_CONSTRAINT = "uk_users_nickname";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

@@ -25,16 +25,17 @@ public class JobFavoriteService {
 
     @Transactional
     public JobFavoriteItem add(Long userId, CreateJobFavoriteRequest request) {
+        String externalId = request.externalId().trim();
+        var user = userRepository.findByIdAndStatusForUpdate(userId, UserStatus.ACTIVE)
+                .orElseThrow(() -> new JobFavoriteException(JobFavoriteErrorCode.USER_NOT_FOUND));
         var existing = favoriteRepository.findByUserIdAndSourceAndExternalId(
-                userId, request.source(), request.externalId().trim());
+                userId, request.source(), externalId);
         if (existing.isPresent()) return JobFavoriteItem.from(existing.get());
 
-        var user = userRepository.findByIdAndStatus(userId, UserStatus.ACTIVE)
-                .orElseThrow(() -> new JobFavoriteException(JobFavoriteErrorCode.USER_NOT_FOUND));
-        JobFavorite favorite = JobFavorite.create(user, request.source(), request.externalId().trim(),
+        JobFavorite favorite = JobFavorite.create(user, request.source(), externalId,
                 request.title().trim(), normalize(request.companyName()), normalize(request.address()),
                 normalize(request.deadline()), normalize(request.sourceUrl()));
-        return JobFavoriteItem.from(favoriteRepository.save(favorite));
+        return JobFavoriteItem.from(favoriteRepository.saveAndFlush(favorite));
     }
 
     public JobFavoriteListResponse findAll(Long userId, int page, int size) {
