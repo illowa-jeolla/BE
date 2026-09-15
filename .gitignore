@@ -1,9 +1,12 @@
 HELP.md
 .gradle
+.gradle-local/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+.DS_Store
+**/.DS_Store
 
 ### STS ###
 .apt_generated

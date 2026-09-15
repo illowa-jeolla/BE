@@ -1,0 +1,15 @@
+.git
+.github
+.gradle
+.gradle-local
+build
+.env
+.env.*
+!.env.example
+uploads
+.DS_Store
+**/.DS_Store
+.idea
+*.iml
+docker-compose.yml
+README.md
