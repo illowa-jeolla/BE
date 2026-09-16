@@ -1,0 +1,140 @@
+name: Deploy backend to Amazon ECS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: backend-production-deploy
+  cancel-in-progress: false
+
+env:
+  AWS_ACCOUNT_ID: "862138198898"
+  AWS_REGION: ap-northeast-2
+  AWS_ROLE_ARN: arn:aws:iam::862138198898:role/illowa-jeolla-main-be-deploy-role
+  ECR_REPOSITORY: illowa-jeolla-main-api
+  ECS_CLUSTER: illowa-jeolla-main-cluster
+  ECS_SERVICE: illowa-jeolla-main-api-svc
+  ECS_TASK_DEFINITION: illowa-jeolla-main-api
+  ECS_CONTAINER_NAME: api
+  HEALTHCHECK_URL: https://api.illowa-jeolla.cloud/actuator/health/liveness
+
+jobs:
+  deploy:
+    name: Test, build, and deploy
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Run tests
+        run: bash ./gradlew test --no-daemon
+
+      - name: Configure AWS credentials with GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: GitHubActions-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image URI
+        id: image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: echo "uri=${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}" >> "${GITHUB_OUTPUT}"
+
+      - name: Check whether image already exists
+        id: image-exists
+        run: |
+          if aws ecr describe-images \
+            --repository-name "${ECR_REPOSITORY}" \
+            --image-ids "imageTag=${GITHUB_SHA}" \
+            > /dev/null 2>&1; then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Set up Docker Buildx
+        if: steps.image-exists.outputs.exists != 'true'
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push image
+        if: steps.image-exists.outputs.exists != 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.image.outputs.uri }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Download current ECS task definition
+        run: >-
+          aws ecs describe-task-definition
+          --task-definition "${ECS_TASK_DEFINITION}"
+          --query taskDefinition
+          --output json
+          > task-definition.json
+
+      - name: Set image in ECS task definition
+        id: task-definition
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.ECS_CONTAINER_NAME }}
+          image: ${{ steps.image.outputs.uri }}
+
+      - name: Deploy ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-definition.outputs.task-definition }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          service: ${{ env.ECS_SERVICE }}
+          wait-for-service-stability: true
+          wait-max-delay-seconds: 15
+
+      - name: Verify backend health
+        run: >-
+          curl
+          --fail
+          --silent
+          --show-error
+          --retry 12
+          --retry-delay 5
+          --retry-all-errors
+          --max-time 15
+          "${HEALTHCHECK_URL}"
+
+      - name: Write deployment summary
+        run: |
+          {
+            echo "### Backend deployment completed"
+            echo "- Image: \`${{ steps.image.outputs.uri }}\`"
+            echo "- Cluster: \`${ECS_CLUSTER}\`"
+            echo "- Service: \`${ECS_SERVICE}\`"
+            echo "- Health: ${HEALTHCHECK_URL}"
+          } >> "${GITHUB_STEP_SUMMARY}"
