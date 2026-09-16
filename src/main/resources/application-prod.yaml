@@ -1,0 +1,31 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+  batch:
+    jdbc:
+      initialize-schema: ${SPRING_BATCH_JDBC_INITIALIZE_SCHEMA:always}
+  data:
+    redis:
+      ssl:
+        enabled: ${REDIS_SSL:true}
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+server:
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
