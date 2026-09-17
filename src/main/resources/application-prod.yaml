@@ -15,6 +15,10 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
+csrf:
+  cookie-domain: ${CSRF_COOKIE_DOMAIN:illowa-jeolla.cloud}
+  cookie-secure: ${CSRF_COOKIE_SECURE:true}
+
 server:
   forward-headers-strategy: framework
   shutdown: graceful

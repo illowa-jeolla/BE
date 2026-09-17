@@ -16,6 +16,7 @@ import jakarta.servlet.DispatcherType;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -23,6 +24,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -38,9 +40,15 @@ import java.util.List;
         CommunityImageProperties.class, LocalImageProperties.class})
 public class SecurityConfig {
     private final FrontendProperties frontendProperties;
+    private final String csrfCookieDomain;
+    private final boolean csrfCookieSecure;
 
-    public SecurityConfig(FrontendProperties frontendProperties) {
+    public SecurityConfig(FrontendProperties frontendProperties,
+                          @Value("${csrf.cookie-domain:}") String csrfCookieDomain,
+                          @Value("${csrf.cookie-secure:false}") boolean csrfCookieSecure) {
         this.frontendProperties = frontendProperties;
+        this.csrfCookieDomain = csrfCookieDomain;
+        this.csrfCookieSecure = csrfCookieSecure;
     }
 
     @Bean
@@ -49,6 +57,7 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .csrf(csrf -> csrf
                         .spa()
+                        .csrfTokenRepository(csrfTokenRepository())
                         .requireCsrfProtectionMatcher(SecurityConfig::isRefreshRequest))
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
@@ -70,6 +79,15 @@ public class SecurityConfig {
                                         "AUTH_403_FORBIDDEN", "접근 권한이 없습니다.")))
                 .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
                 .build();
+    }
+
+    private CookieCsrfTokenRepository csrfTokenRepository() {
+        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setCookieCustomizer(cookie -> {
+            cookie.path("/").secure(csrfCookieSecure).sameSite("Lax");
+            if (!csrfCookieDomain.isBlank()) cookie.domain(csrfCookieDomain);
+        });
+        return repository;
     }
 
     @Bean
