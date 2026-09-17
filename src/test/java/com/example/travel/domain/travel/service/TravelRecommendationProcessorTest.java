@@ -5,8 +5,7 @@ import com.example.travel.domain.ai.exception.OpenAiException;
 import com.example.travel.domain.travel.ai.TravelAiService;
 import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
-import com.example.travel.domain.travel.route.PlannedRouteSegment;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.route.TravelRouteService;
 import com.example.travel.domain.travel.dto.response.TravelGuideDraft;
 import org.junit.jupiter.api.Test;
@@ -31,7 +30,7 @@ class TravelRecommendationProcessorTest {
     @Mock private TravelFallbackService fallbackService;
     @Mock private TravelRouteService routeService;
     @Mock private TravelGuideDraftCacheService draftCacheService;
-    @Mock private TravelRecommendationRequest request;
+    @Mock private TravelRecommendationContext request;
     @Mock private AiTravelGuideResult aiResult;
     @Mock private AiTravelGuideResult fallbackResult;
 

@@ -28,7 +28,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.flyway.locations=classpath:db/test-migration",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "frontend.origin=http://localhost:3000",
+        "frontend.oauth-callback-uri=http://localhost:3000/oauth/callback"
 })
 @AutoConfigureMockMvc
 class SecurityConfigTest {
@@ -75,6 +77,7 @@ class SecurityConfigTest {
                 .andExpect(status().isOk())
                 .andExpect(cookie().exists("XSRF-TOKEN"))
                 .andExpect(jsonPath("$.data.cookieName").value("XSRF-TOKEN"))
+                .andExpect(jsonPath("$.data.token").isNotEmpty())
                 .andExpect(jsonPath("$.data.headerName").value("X-XSRF-TOKEN"));
     }
 
@@ -114,6 +117,24 @@ class SecurityConfigTest {
     }
 
     @Test
+    void externalJobApiRequiresAccessToken() throws Exception {
+        mockMvc.perform(get("/api/v1/jobs/external/tour"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/v1/jobs/external/junnam"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void validAccessTokenPassesExternalJobSecurityCheck() throws Exception {
+        String token = jwtProvider.createAccessToken(7L, "USER");
+
+        mockMvc.perform(get("/api/v1/jobs/external/security-check")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void corsPreflightAllowsGetAndPostWithConfiguredHeaders() throws Exception {
         mockMvc.perform(options("/api/v1/tour/places")
                         .header("Origin", "http://localhost:3000")
@@ -122,6 +143,7 @@ class SecurityConfigTest {
                                 "Content-Type, Authorization, X-XSRF-TOKEN"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"))
+                .andExpect(header().string("Access-Control-Allow-Credentials", "true"))
                 .andExpect(header().string("Access-Control-Allow-Methods", containsString("GET")))
                 .andExpect(header().string("Access-Control-Allow-Methods", containsString("POST")))
                 .andExpect(header().string("Access-Control-Allow-Headers", containsString("Content-Type")))

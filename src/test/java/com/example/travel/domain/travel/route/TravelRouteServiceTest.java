@@ -2,7 +2,7 @@ package com.example.travel.domain.travel.route;
 
 import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.enums.TransportType;
 import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
 import com.example.travel.domain.travel.exception.TravelRecommendationException;
@@ -25,7 +25,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TravelRouteServiceTest {
     @Mock KakaoDirectionsClient client;
-    @Mock TravelRecommendationRequest request;
+    @Mock
+    TravelRecommendationContext request;
 
     @Test
     void createsFirstMiddleAndLastDayBoundaries() {

@@ -3,7 +3,7 @@ package com.example.travel.domain.travel.service;
 import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
 import com.example.travel.domain.travel.dto.response.TravelGuideDraft;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
 import com.example.travel.domain.travel.exception.TravelRecommendationException;
 import org.junit.jupiter.api.Test;
@@ -116,7 +116,7 @@ class TravelGuideDraftCacheServiceTest {
                         new AiTravelGuideResult.Item("100", 1, "10:00", 60, "추천")))), "팁");
         TravelCandidateItem candidate = new TravelCandidateItem("100", "관광지", "주소",
                 null, new BigDecimal("34.1"), new BigDecimal("126.1"), 1000, 80);
-        TravelRecommendationRequest request = TravelRecommendationRequest.create(10L, 1L, 9L,
+        TravelRecommendationContext request = TravelRecommendationContext.create(10L, 1L, 9L,
                 "완도", "lodging", "숙소", "주소", new BigDecimal("34.1"),
                 new BigDecimal("126.1"), "start", "출발", "주소",
                 new BigDecimal("34.1"), new BigDecimal("126.1"), "end", "도착", "주소",

@@ -1,7 +1,7 @@
 package com.example.travel.domain.travel.ai;
 
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,7 +46,7 @@ public class TravelAiPromptService {
                 """;
     }
 
-    public String input(TravelRecommendationRequest request,
+    public String input(TravelRecommendationContext request,
                         List<TravelCandidateItem> candidates) {
         Map<String, Object> input = new LinkedHashMap<>();
         input.put("region", request.getRegionName());

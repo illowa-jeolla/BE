@@ -7,7 +7,7 @@ import com.example.travel.domain.travel.dto.request.CreateTravelRecommendationRe
 import com.example.travel.domain.travel.dto.request.RouteLocationRequest;
 import com.example.travel.domain.travel.dto.response.CreateTravelRecommendationResponse;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.enums.TravelTheme;
 import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
 import com.example.travel.domain.travel.exception.TravelRecommendationException;
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class TravelRecommendationService {
-    private static final double REGION_SCOPE_METERS = 25_000;
+    private static final double REGION_SCOPE_METERS = 40_000;
     private static final long MAX_TRIP_DAYS = 7;
 
     private final UserRepository userRepository;
@@ -69,8 +69,6 @@ public class TravelRecommendationService {
         Region region = regionRepository.findActiveById(request.regionId())
                 .orElseThrow(() -> error(TravelRecommendationErrorCode.REGION_NOT_FOUND));
         validateLodgingScope(region, request.accommodation());
-        validateRouteLocationScope(region, request.startLocation());
-        validateRouteLocationScope(region, request.endLocation());
 
         int requestedPlaces = request.dailyPlaceCounts().stream().mapToInt(Integer::intValue).sum();
         List<TravelCandidateItem> candidates = candidateService.findCandidates(
@@ -88,7 +86,7 @@ public class TravelRecommendationService {
         RouteLocationRequest end = request.endLocation();
         String[] themes = request.themes().stream().map(Enum::name).sorted().toArray(String[]::new);
         Long requestId = requestCacheService.nextId();
-        TravelRecommendationRequest saved = TravelRecommendationRequest.create(
+        TravelRecommendationContext saved = TravelRecommendationContext.create(
                         requestId, userId, region.getId(), region.getName(),
                         lodging.kakaoPlaceId().trim(),
                         lodging.name().trim(),
@@ -116,7 +114,7 @@ public class TravelRecommendationService {
         if (draft.refreshResult() || draftCacheService.isRefreshUsed(draftId)) {
             throw error(TravelRecommendationErrorCode.REFRESH_ALREADY_USED);
         }
-        TravelRecommendationRequest original = draft.request();
+        TravelRecommendationContext original = draft.request();
         Set<TravelTheme> themes = Arrays.stream(original.getThemes())
                 .map(TravelTheme::valueOf)
                 .collect(Collectors.toUnmodifiableSet());
@@ -137,7 +135,7 @@ public class TravelRecommendationService {
             throw error(TravelRecommendationErrorCode.REFRESH_ALREADY_USED);
         }
 
-        TravelRecommendationRequest refreshed = original.createRefreshRequest(
+        TravelRecommendationContext refreshed = original.createRefreshRequest(
                 requestCacheService.nextId());
         requestCacheService.save(refreshed);
         candidateCacheService.save(refreshed.getId(), candidates);
@@ -174,17 +172,6 @@ public class TravelRecommendationService {
                 lodging.latitude(), lodging.longitude());
         if (distance > REGION_SCOPE_METERS) {
             throw error(TravelRecommendationErrorCode.LODGING_OUTSIDE_REGION);
-        }
-    }
-
-    private void validateRouteLocationScope(Region region, RouteLocationRequest location) {
-        if (region.getLatitude() == null || region.getLongitude() == null) {
-            throw error(TravelRecommendationErrorCode.REGION_NOT_FOUND);
-        }
-        double distance = haversineMeters(region.getLatitude(), region.getLongitude(),
-                location.latitude(), location.longitude());
-        if (distance > REGION_SCOPE_METERS) {
-            throw error(TravelRecommendationErrorCode.ROUTE_LOCATION_OUTSIDE_REGION);
         }
     }
 

@@ -4,7 +4,7 @@ import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
 import com.example.travel.domain.travel.entity.TravelGuide;
 import com.example.travel.domain.travel.entity.TravelGuideItem;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.entity.TravelGuideRouteSegment;
 import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
 import com.example.travel.domain.travel.exception.TravelRecommendationException;
@@ -49,7 +49,7 @@ public class TravelRecommendationPersistenceService {
     }
 
     @Transactional
-    public Long saveGuide(TravelRecommendationRequest request, AiTravelGuideResult result,
+    public Long saveGuide(TravelRecommendationContext request, AiTravelGuideResult result,
                           List<TravelCandidateItem> candidates,
                           List<PlannedRouteSegment> routes, boolean generatedByAi) {
         var existing = guideRepository.findBySourceRequestId(request.getId());

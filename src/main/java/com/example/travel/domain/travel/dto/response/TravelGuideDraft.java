@@ -2,14 +2,14 @@ package com.example.travel.domain.travel.dto.response;
 
 import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.route.PlannedRouteSegment;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 
 import java.util.List;
 
 public record TravelGuideDraft(
         Long requestId,
         Long userId,
-        TravelRecommendationRequest request,
+        TravelRecommendationContext request,
         AiTravelGuideResult result,
         List<TravelCandidateItem> candidates,
         List<PlannedRouteSegment> routes,

@@ -7,7 +7,7 @@ import com.example.travel.domain.travel.dto.request.CreateTravelRecommendationRe
 import com.example.travel.domain.travel.dto.request.RouteLocationRequest;
 import com.example.travel.domain.travel.dto.response.CreateTravelRecommendationResponse;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.dto.response.TravelGuideDraft;
 import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.enums.CompanionType;
@@ -90,8 +90,8 @@ class TravelRecommendationServiceTest {
         assertThat(response.requestId()).isEqualTo(10L);
         assertThat(response.status()).isEqualTo(RecommendationStatus.PENDING);
         assertThat(response.candidates()).containsExactlyElementsOf(candidates);
-        ArgumentCaptor<TravelRecommendationRequest> requestCaptor =
-                ArgumentCaptor.forClass(TravelRecommendationRequest.class);
+        ArgumentCaptor<TravelRecommendationContext> requestCaptor =
+                ArgumentCaptor.forClass(TravelRecommendationContext.class);
         verify(requestCacheService).save(requestCaptor.capture());
         assertThat(requestCaptor.getValue().getLodgingKakaoPlaceId()).isEqualTo("kakao-1");
         assertThat(requestCaptor.getValue().getStartPlaceName()).isEqualTo("완도항");
@@ -140,10 +140,10 @@ class TravelRecommendationServiceTest {
 
     @Test
     void refreshesRedisDraftFromNewTourCandidatesOnlyOnce() {
-        TravelRecommendationRequest original = org.mockito.Mockito.mock(
-                TravelRecommendationRequest.class);
-        TravelRecommendationRequest refreshed = org.mockito.Mockito.mock(
-                TravelRecommendationRequest.class);
+        TravelRecommendationContext original = org.mockito.Mockito.mock(
+                TravelRecommendationContext.class);
+        TravelRecommendationContext refreshed = org.mockito.Mockito.mock(
+                TravelRecommendationContext.class);
         AiTravelGuideResult result = new AiTravelGuideResult("기존", "요약", List.of(
                 new AiTravelGuideResult.Day(1, "1일차", List.of(
                         new AiTravelGuideResult.Item("old-1", 1, "10:00", 60, "기존")))), "팁");
@@ -186,9 +186,9 @@ class TravelRecommendationServiceTest {
         AccommodationRequest lodging = new AccommodationRequest("kakao-1", "완도수엘라펜션",
                 "전남 완도군", new BigDecimal("34.3150"), new BigDecimal("126.7600"));
         RouteLocationRequest start = new RouteLocationRequest("start-1", "완도항", "전남 완도군",
-                new BigDecimal("34.3180"), new BigDecimal("126.7500"));
+                new BigDecimal("37.5665"), new BigDecimal("126.9780"));
         RouteLocationRequest end = new RouteLocationRequest("end-1", "완도공용버스터미널", "전남 완도군",
-                new BigDecimal("34.3155"), new BigDecimal("126.7380"));
+                new BigDecimal("35.1796"), new BigDecimal("129.0756"));
         int tripDays = (int) ChronoUnit.DAYS.between(startDate, endDate) + 1;
         return new CreateTravelRecommendationRequest(9L, startDate, endDate, lodging, start, end,
                 Set.of(TravelTheme.NATURE_HEALING), java.util.Collections.nCopies(

@@ -5,7 +5,7 @@ import com.example.travel.domain.ai.exception.OpenAiErrorCode;
 import com.example.travel.domain.ai.exception.OpenAiException;
 import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -29,7 +29,7 @@ public class TravelAiService {
         this.promptService = promptService;
     }
 
-    public AiTravelGuideResult generate(TravelRecommendationRequest request,
+    public AiTravelGuideResult generate(TravelRecommendationContext request,
                                         List<TravelCandidateItem> candidates) {
         String raw = openAiClient.generateStructured(promptService.instructions(),
                 promptService.input(request, candidates), promptService.responseSchema());
@@ -42,7 +42,7 @@ public class TravelAiService {
         }
     }
 
-    private void validate(AiTravelGuideResult result, TravelRecommendationRequest request,
+    private void validate(AiTravelGuideResult result, TravelRecommendationContext request,
                           List<TravelCandidateItem> candidates) {
         requireText(result.title());
         requireText(result.summary());

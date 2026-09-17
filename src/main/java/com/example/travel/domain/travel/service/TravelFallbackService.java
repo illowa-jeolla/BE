@@ -2,7 +2,7 @@ package com.example.travel.domain.travel.service;
 
 import com.example.travel.domain.travel.ai.dto.AiTravelGuideResult;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
@@ -12,7 +12,7 @@ import java.util.List;
 
 @Service
 public class TravelFallbackService {
-    public AiTravelGuideResult create(TravelRecommendationRequest request,
+    public AiTravelGuideResult create(TravelRecommendationContext request,
                                       List<TravelCandidateItem> candidates) {
         int tripDays = (int) ChronoUnit.DAYS.between(
                 request.getStartsOn(), request.getEndsOn()) + 1;

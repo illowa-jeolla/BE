@@ -8,7 +8,7 @@ import com.example.travel.domain.travel.dto.request.ManualTravelDayRequest;
 import com.example.travel.domain.travel.dto.request.ManualTravelPlaceRequest;
 import com.example.travel.domain.travel.dto.response.TravelCandidateItem;
 import com.example.travel.domain.travel.dto.response.TravelGuideDraft;
-import com.example.travel.domain.travel.entity.TravelRecommendationRequest;
+import com.example.travel.domain.travel.model.TravelRecommendationContext;
 import com.example.travel.domain.travel.exception.TravelRecommendationErrorCode;
 import com.example.travel.domain.travel.exception.TravelRecommendationException;
 import com.example.travel.domain.travel.route.PlannedRouteSegment;
@@ -28,7 +28,7 @@ import java.util.Set;
 @Service
 public class ManualTravelGuideService {
     private static final long MAX_TRIP_DAYS = 7;
-    private static final double REGION_SCOPE_METERS = 25_000;
+    private static final double REGION_SCOPE_METERS = 40_000;
     private static final double PLACE_RADIUS_METERS = 20_000;
 
     private final UserRepository userRepository;
@@ -60,14 +60,10 @@ public class ManualTravelGuideService {
                 .orElseThrow(() -> error(TravelRecommendationErrorCode.REGION_NOT_FOUND));
         validateLocationScope(region, request.accommodation().latitude(),
                 request.accommodation().longitude(), TravelRecommendationErrorCode.LODGING_OUTSIDE_REGION);
-        validateLocationScope(region, request.startLocation().latitude(),
-                request.startLocation().longitude(), TravelRecommendationErrorCode.ROUTE_LOCATION_OUTSIDE_REGION);
-        validateLocationScope(region, request.endLocation().latitude(),
-                request.endLocation().longitude(), TravelRecommendationErrorCode.ROUTE_LOCATION_OUTSIDE_REGION);
         validateDays(request);
 
         Long draftId = requestCacheService.nextId();
-        TravelRecommendationRequest context = context(draftId, userId, region, request);
+        TravelRecommendationContext context = context(draftId, userId, region, request);
         List<TravelCandidateItem> candidates = candidates(request);
         AiTravelGuideResult result = result(region, request);
         List<PlannedRouteSegment> routes = routeService.plan(context, result, candidates);
@@ -117,13 +113,13 @@ public class ManualTravelGuideService {
         }
     }
 
-    private TravelRecommendationRequest context(Long id, Long userId, Region region,
-                                                  CreateManualTravelGuideRequest request) {
+    private TravelRecommendationContext context(Long id, Long userId, Region region,
+                                                CreateManualTravelGuideRequest request) {
         var lodging = request.accommodation();
         var start = request.startLocation();
         var end = request.endLocation();
         String[] themes = request.themes().stream().map(Enum::name).sorted().toArray(String[]::new);
-        return TravelRecommendationRequest.create(id, userId, region.getId(), region.getName(),
+        return TravelRecommendationContext.create(id, userId, region.getId(), region.getName(),
                 lodging.kakaoPlaceId().trim(), lodging.name().trim(), lodging.address().trim(),
                 lodging.latitude(), lodging.longitude(), start.kakaoPlaceId().trim(),
                 start.name().trim(), start.address().trim(), start.latitude(), start.longitude(),

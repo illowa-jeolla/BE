@@ -1,9 +1,12 @@
 HELP.md
 .gradle
+.gradle-local/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+.DS_Store
+**/.DS_Store
 
 ### STS ###
 .apt_generated
@@ -34,11 +37,18 @@ gathering session.md
 ai session.md
 ai api_spec.md
 ai technical decisions.md
-
+ai seclet session.md
+/postman sharing.md
+/sharing api spec.md
+/sharing session.md
+/ai match api spec.md
+/ai match technical note.md
+/mypage-api-spec.md
 ### Local environment configuration ###
 .env
 .env.*
 !.env.example
+uploads/
 
 ### NetBeans ###
 /nbproject/private/

@@ -11,7 +11,6 @@ public enum TravelRecommendationErrorCode implements ErrorCode {
     TRIP_TOO_LONG(HttpStatus.BAD_REQUEST, "TRAVEL_400_TRIP_TOO_LONG", "여행 기간은 최대 7일까지 선택할 수 있습니다."),
     DAILY_PLACE_COUNTS_MISMATCH(HttpStatus.BAD_REQUEST, "TRAVEL_400_DAILY_PLACE_COUNTS_MISMATCH", "일자별 관광지 개수는 여행 일수만큼 입력해야 합니다."),
     LODGING_OUTSIDE_REGION(HttpStatus.BAD_REQUEST, "TRAVEL_400_LODGING_OUTSIDE_REGION", "선택한 숙소가 여행 지역의 검색 범위를 벗어났습니다."),
-    ROUTE_LOCATION_OUTSIDE_REGION(HttpStatus.BAD_REQUEST, "TRAVEL_400_ROUTE_LOCATION_OUTSIDE_REGION", "선택한 출발지 또는 도착지가 여행 지역의 검색 범위를 벗어났습니다."),
     NO_CANDIDATES(HttpStatus.UNPROCESSABLE_ENTITY, "TRAVEL_422_NO_CANDIDATES", "숙소 주변에서 추천 가능한 관광지를 찾지 못했습니다."),
     INSUFFICIENT_CANDIDATES(HttpStatus.UNPROCESSABLE_ENTITY, "TRAVEL_422_INSUFFICIENT_CANDIDATES", "요청한 관광지 개수보다 추천 가능한 후보가 적습니다."),
     CANDIDATE_CACHE_NOT_FOUND(HttpStatus.GONE, "TRAVEL_410_CANDIDATE_CACHE_NOT_FOUND", "추천 후보 정보가 만료되었습니다."),
