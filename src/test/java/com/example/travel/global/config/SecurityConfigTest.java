@@ -29,6 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.password=",
         "spring.flyway.locations=classpath:db/test-migration",
         "spring.jpa.hibernate.ddl-auto=create-drop",
+        "csrf.cookie-domain=illowa-jeolla.cloud",
+        "csrf.cookie-secure=true",
         "frontend.origin=http://localhost:3000",
         "frontend.oauth-callback-uri=http://localhost:3000/oauth/callback"
 })
@@ -76,6 +78,8 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/v1/auth/csrf"))
                 .andExpect(status().isOk())
                 .andExpect(cookie().exists("XSRF-TOKEN"))
+                .andExpect(cookie().domain("XSRF-TOKEN", "illowa-jeolla.cloud"))
+                .andExpect(cookie().secure("XSRF-TOKEN", true))
                 .andExpect(jsonPath("$.data.cookieName").value("XSRF-TOKEN"))
                 .andExpect(jsonPath("$.data.token").isNotEmpty())
                 .andExpect(jsonPath("$.data.headerName").value("X-XSRF-TOKEN"));
