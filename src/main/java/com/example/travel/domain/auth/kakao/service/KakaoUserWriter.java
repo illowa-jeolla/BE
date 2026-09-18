@@ -8,6 +8,7 @@ import com.example.travel.domain.user.entity.SocialAccount;
 import com.example.travel.domain.user.repository.SocialAccountRepository;
 import com.example.travel.domain.user.entity.User;
 import com.example.travel.domain.user.repository.UserRepository;
+import com.example.travel.domain.user.service.SocialNicknameGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,11 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class KakaoUserWriter {
     private final UserRepository userRepository;
     private final SocialAccountRepository socialAccountRepository;
+    private final SocialNicknameGenerator nicknameGenerator;
 
     public KakaoUserWriter(UserRepository userRepository,
-                           SocialAccountRepository socialAccountRepository) {
+                           SocialAccountRepository socialAccountRepository,
+                           SocialNicknameGenerator nicknameGenerator) {
         this.userRepository = userRepository;
         this.socialAccountRepository = socialAccountRepository;
+        this.nicknameGenerator = nicknameGenerator;
     }
 
     @Transactional
@@ -35,8 +39,10 @@ public class KakaoUserWriter {
     }
 
     private Long create(KakaoUserResponse kakaoUser, String providerUserId, String email) {
+        String nickname = nicknameGenerator.generate(
+                kakaoUser.nicknameOrDefault(), AuthProvider.KAKAO, providerUserId);
         User user = userRepository.save(User.createSocial(
-                kakaoUser.nicknameOrDefault(),
+                nickname,
                 kakaoUser.profileImageUrl().orElse(null)));
         user.recordLogin();
         socialAccountRepository.saveAndFlush(SocialAccount.create(
