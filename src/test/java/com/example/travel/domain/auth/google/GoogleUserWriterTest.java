@@ -78,6 +78,24 @@ class GoogleUserWriterTest {
     }
 
     @Test
+    void createsGoogleUserWithUniqueNicknameWhenNicknameAlreadyExists() {
+        userRepository.saveAndFlush(User.create("김현강"));
+        var googleUser = new GoogleUserInfo(
+                "google-subject", "google@example.com", true, "김현강", null);
+
+        Long userId = userWriter.findOrCreate(googleUser);
+
+        User created = userRepository.findById(userId).orElseThrow();
+        assertThat(created.getNickname())
+                .isNotEqualTo("김현강")
+                .startsWith("김현강")
+                .hasSizeLessThanOrEqualTo(10);
+        assertThat(socialAccountRepository
+                .findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-subject"))
+                .isPresent();
+    }
+
+    @Test
     void rejectsUnverifiedEmail() {
         var googleUser = new GoogleUserInfo(
                 "google-subject", "user@example.com", false, "사용자", null);

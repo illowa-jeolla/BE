@@ -8,6 +8,7 @@ import com.example.travel.domain.user.entity.User;
 import com.example.travel.domain.user.enums.AuthProvider;
 import com.example.travel.domain.user.repository.SocialAccountRepository;
 import com.example.travel.domain.user.repository.UserRepository;
+import com.example.travel.domain.user.service.SocialNicknameGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,11 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class GoogleUserWriter {
     private final UserRepository userRepository;
     private final SocialAccountRepository socialAccountRepository;
+    private final SocialNicknameGenerator nicknameGenerator;
 
     public GoogleUserWriter(UserRepository userRepository,
-                            SocialAccountRepository socialAccountRepository) {
+                            SocialAccountRepository socialAccountRepository,
+                            SocialNicknameGenerator nicknameGenerator) {
         this.userRepository = userRepository;
         this.socialAccountRepository = socialAccountRepository;
+        this.nicknameGenerator = nicknameGenerator;
     }
 
     @Transactional
@@ -39,8 +43,10 @@ public class GoogleUserWriter {
     }
 
     private Long create(GoogleUserInfo googleUser, String email) {
+        String nickname = nicknameGenerator.generate(
+                googleUser.nicknameOrDefault(), AuthProvider.GOOGLE, googleUser.subject());
         User user = userRepository.save(User.createSocial(
-                googleUser.nicknameOrDefault(), googleUser.picture()));
+                nickname, googleUser.picture()));
         user.recordLogin();
         socialAccountRepository.saveAndFlush(SocialAccount.create(
                 user, AuthProvider.GOOGLE, googleUser.subject(), email, true));

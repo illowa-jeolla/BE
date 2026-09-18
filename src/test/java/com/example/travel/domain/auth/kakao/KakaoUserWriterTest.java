@@ -80,6 +80,25 @@ class KakaoUserWriterTest {
     }
 
     @Test
+    void createsKakaoUserWithUniqueNicknameWhenNicknameAlreadyExists() {
+        userRepository.saveAndFlush(User.create("김현강"));
+        var kakaoUser = new KakaoUserResponse(12345678L, new KakaoUserResponse.KakaoAccount(
+                true, false, true, true, "kakao@example.com",
+                new KakaoUserResponse.Profile("김현강", null)));
+
+        Long userId = userWriter.findOrCreate(kakaoUser);
+
+        User created = userRepository.findById(userId).orElseThrow();
+        assertThat(created.getNickname())
+                .isNotEqualTo("김현강")
+                .startsWith("김현강")
+                .hasSizeLessThanOrEqualTo(10);
+        assertThat(socialAccountRepository
+                .findByProviderAndProviderUserId(AuthProvider.KAKAO, "12345678"))
+                .isPresent();
+    }
+
+    @Test
     void rejectsUnverifiedEmail() {
         var kakaoUser = new KakaoUserResponse(456L, new KakaoUserResponse.KakaoAccount(
                 true, false, true, false, "user@example.com", null));
