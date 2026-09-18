@@ -53,6 +53,11 @@ jwt:
   refresh-token-expiration: ${JWT_REFRESH_EXPIRATION}
   cookie-secure: ${JWT_COOKIE_SECURE}
 
+csrf:
+  # Leave empty locally. In production this shares the readable CSRF cookie with the web subdomain.
+  cookie-domain: ${CSRF_COOKIE_DOMAIN:}
+  cookie-secure: ${CSRF_COOKIE_SECURE:${JWT_COOKIE_SECURE:false}}
+
 kakao:
   client-id: ${KAKAO_CLIENT_ID}
   client-secret: ${KAKAO_CLIENT_SECRET}
