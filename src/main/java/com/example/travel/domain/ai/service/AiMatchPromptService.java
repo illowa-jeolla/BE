@@ -14,9 +14,21 @@ import java.util.Map;
 @Service
 public class AiMatchPromptService {
     private static final ObjectMapper MAPPER = new ObjectMapper().findAndRegisterModules();
+    private final AiMatchScoreCalculator scoreCalculator;
 
-    public String searchText(AiMatchRequestContext context) {
-        return "희망 직무: " + String.join(", ", context.desiredJobs()) + "\n사용자 생각: " + context.thought();
+    public AiMatchPromptService(AiMatchScoreCalculator scoreCalculator) {
+        this.scoreCalculator = scoreCalculator;
+    }
+
+    public String jobSearchText(AiMatchRequestContext context) {
+        return "검색 목적: 희망 직무와 근무 조건에 맞는 일자리\n희망 직무: "
+                + String.join(", ", context.desiredJobs())
+                + "\n근무 및 생활 조건: " + context.thought();
+    }
+
+    public String tourismSearchText(AiMatchRequestContext context, Region region) {
+        return "검색 목적: 거주 중 즐길 수 있는 생활관광 및 여가 장소\n선호 지역: "
+                + region.getName() + "\n생활환경 및 여가 취향: " + context.thought();
     }
 
     public String input(AiMatchRequestContext context, Region region,
@@ -34,7 +46,10 @@ public class AiMatchPromptService {
     public String instructions() {
         return "실제 후보만 사용해 거주 지역에 맞는 일자리와 관광지를 추천하라. "
                 + "반드시 전달받은 job id와 place id만 반환하고 각각 최대 3개를 선택한다. "
-                + "housingScore와 communityScore는 사용자 생각과 지역 특성에 근거해 0~100으로 평가한다. "
+                + "후보가 존재하면 사용자 조건에 가장 가까운 항목을 최소 1개 선택한다. "
+                + "housingScore와 communityScore는 70점을 명확한 충돌이 없는 중립 기준으로 삼는다. "
+                + "여러 근거가 잘 맞으면 80~89점, 강한 근거가 여러 개면 90점 이상, "
+                + "일부 조건만 맞으면 50~69점, 명확히 충돌할 때만 50점 미만으로 평가한다. "
                 + "추천 이유는 한국어로 간결하게 작성한다.";
     }
 
@@ -61,16 +76,17 @@ public class AiMatchPromptService {
         return Map.of("id", value.getId(), "source", value.getSource(), "externalId", value.getExternalId(),
                 "region", text(match.regionName()),
                 "title", value.getTitle(), "company", text(value.getCompanyName()), "address", text(value.getAddress()),
-                "description", text(value.getJobDescription()), "semanticScore", score(match.similarity()));
+                "description", text(value.getJobDescription()),
+                "semanticScore", scoreCalculator.semanticScore(match.similarity()));
     }
 
     private Map<String, Object> place(PlaceMatch match) {
         var value = match.candidate();
         return Map.of("id", value.getId(), "contentId", value.getExternalId(), "name", value.getName(),
                 "category", text(value.getCategory()), "address", text(value.getAddress()),
-                "description", text(value.getDescription()), "semanticScore", score(match.similarity()));
+                "description", text(value.getDescription()),
+                "semanticScore", scoreCalculator.semanticScore(match.similarity()));
     }
 
     private String text(String value) { return value == null ? "" : value; }
-    private int score(double value) { return (int) Math.round(value * 100); }
 }

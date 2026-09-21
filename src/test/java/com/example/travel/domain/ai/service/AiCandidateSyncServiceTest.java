@@ -11,6 +11,7 @@ import com.example.travel.domain.job.service.ExternalJobService;
 import com.example.travel.domain.region.entity.Region;
 import com.example.travel.domain.region.repository.RegionRepository;
 import com.example.travel.domain.tour.client.TourInfoClient;
+import com.example.travel.domain.tour.dto.TourPlaceDetailResponse;
 import com.example.travel.domain.tour.dto.TourPlaceItem;
 import com.example.travel.domain.tour.dto.TourPlaceMapResponse;
 import org.junit.jupiter.api.Test;
@@ -109,6 +110,43 @@ class AiCandidateSyncServiceTest {
         service.syncTourPlaces();
 
         assertThat(persisted.get().getRegion()).isSameAs(yeosu);
+    }
+
+    @Test
+    void enrichesNewTourPlaceWithDetailDescriptionAndReadableCategory() {
+        TourInfoClient tourClient = mock(TourInfoClient.class);
+        RegionRepository regionRepository = mock(RegionRepository.class);
+        AiTourPlaceCandidateRepository placeRepository = mock(AiTourPlaceCandidateRepository.class);
+        OpenAiEmbeddingClient embeddingClient = mock(OpenAiEmbeddingClient.class);
+        Region yeosu = Region.createSupportedCity("여수", new BigDecimal("34.7604"), new BigDecimal("127.6622"));
+        AtomicReference<AiTourPlaceCandidate> persisted = new AtomicReference<>();
+
+        when(regionRepository.findAllByActiveTrueOrderByNameAsc()).thenReturn(List.of(yeosu));
+        when(tourClient.findPlacesNearby(yeosu.getLatitude(), yeosu.getLongitude(), 20_000, 1, 30))
+                .thenReturn(new TourPlaceMapResponse(1, 30, 1,
+                        List.of(place("100", "전라남도 여수시"))));
+        when(tourClient.findPlaceDetail("100")).thenReturn(new TourPlaceDetailResponse(
+                "100", "12", "중복 관광지", "전라남도 여수시", null, null,
+                "바다를 바라보며 산책할 수 있는 관광지", null, null,
+                new BigDecimal("127.7"), new BigDecimal("34.7"), null));
+        when(placeRepository.findBySourceAndExternalId(any(), any())).thenReturn(Optional.empty());
+        when(placeRepository.save(any(AiTourPlaceCandidate.class))).thenAnswer(invocation -> {
+            AiTourPlaceCandidate candidate = invocation.getArgument(0);
+            persisted.set(candidate);
+            return candidate;
+        });
+        when(placeRepository.findAllBySourceAndActiveTrueAndLastSeenAtBefore(any(), any()))
+                .thenReturn(List.of());
+        when(embeddingClient.embed(anyList())).thenAnswer(invocation -> {
+            List<String> inputs = invocation.getArgument(0);
+            return inputs.stream().map(input -> new float[1536]).toList();
+        });
+
+        service(tourClient, regionRepository, placeRepository, embeddingClient).syncTourPlaces();
+
+        assertThat(persisted.get().getDescription()).contains("바다를 바라보며");
+        assertThat(persisted.get().getCategory()).startsWith("자연 관광");
+        verify(tourClient).findPlaceDetail("100");
     }
 
     @Test
