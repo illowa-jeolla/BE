@@ -2,6 +2,7 @@ package com.example.travel.domain.ai.service;
 
 import com.example.travel.domain.ai.client.OpenAiClient;
 import com.example.travel.domain.ai.client.OpenAiEmbeddingClient;
+import com.example.travel.domain.ai.config.AiMatchScoreProperties;
 import com.example.travel.domain.ai.dto.response.AiMatchResultResponse;
 import com.example.travel.domain.ai.entity.AiJobCandidate;
 import com.example.travel.domain.ai.entity.AiTourPlaceCandidate;
@@ -36,8 +37,9 @@ class AiMatchProcessorTest {
         OpenAiClient openAiClient = mock(OpenAiClient.class);
         RegionRepository regionRepository = mock(RegionRepository.class);
         AiMatchPersistenceService persistenceService = mock(AiMatchPersistenceService.class);
+        AiMatchScoreCalculator scoreCalculator = new AiMatchScoreCalculator(new AiMatchScoreProperties());
         AiMatchProcessor processor = new AiMatchProcessor(cache, embeddingClient, searchRepository,
-                promptService, openAiClient, regionRepository, persistenceService);
+                promptService, openAiClient, regionRepository, persistenceService, scoreCalculator);
 
         UUID requestId = UUID.randomUUID();
         AiMatchRequestContext context = new AiMatchRequestContext(requestId, 1L, 7L,
@@ -54,7 +56,8 @@ class AiMatchProcessorTest {
         when(regionRepository.findActiveById(7L)).thenReturn(Optional.of(region));
         when(region.getId()).thenReturn(7L);
         when(region.getName()).thenReturn("여수");
-        when(embeddingClient.embedOne(anyString())).thenReturn(new float[]{0.1f});
+        when(embeddingClient.embed(anyList())).thenReturn(List.of(
+                new float[]{0.1f}, new float[]{0.2f}));
         when(searchRepository.findJobs(eq(7L), any(float[].class), eq(20))).thenReturn(List.of());
         when(searchRepository.findJobsAcrossRegions(any(float[].class), eq(20))).thenReturn(List.of(
                 new AiCandidateSearchRepository.JobMatch(job, 0.85, 8L, "보성")));
@@ -67,8 +70,11 @@ class AiMatchProcessorTest {
         when(place.getId()).thenReturn(3L);
         when(place.getExternalId()).thenReturn("1276");
         when(place.getName()).thenReturn("여수 해상케이블카");
+        when(searchRepository.findPlaceStats(7L))
+                .thenReturn(new AiCandidateSearchRepository.PlaceStats(20, 4));
         when(promptService.instructions()).thenReturn("instructions");
-        when(promptService.searchText(context)).thenReturn("search text");
+        when(promptService.jobSearchText(context)).thenReturn("job search text");
+        when(promptService.tourismSearchText(context, region)).thenReturn("tourism search text");
         when(promptService.input(eq(context), eq(region), anyList(), anyList())).thenReturn("input");
         when(promptService.schema()).thenReturn(new ObjectMapper().createObjectNode());
         when(openAiClient.generateStructured(anyString(), eq("input"), any())).thenReturn("""
@@ -87,13 +93,13 @@ class AiMatchProcessorTest {
         assertThat(response.getValue().results().get(0).jobStatus().message())
                 .isEqualTo("선택한 지역에 추천 가능한 일자리가 없어 다른 지역의 일자리로 대체했습니다.");
         assertThat(response.getValue().results().get(0).jobs()).hasSize(1);
-        assertThat(response.getValue().results().get(0).jobs().get(0).matchScore()).isEqualTo(85);
+        assertThat(response.getValue().results().get(0).jobs().get(0).matchScore()).isEqualTo(97);
         assertThat(response.getValue().results().get(0).jobs().get(0).reason()).isEqualTo("첫 번째 이유");
         assertThat(response.getValue().results().get(0).jobs().get(0).region().name()).isEqualTo("보성");
         assertThat(response.getValue().results().get(0).tourismStatus().status())
                 .isEqualTo(AiMatchResultResponse.SectionState.SUCCESS);
         assertThat(response.getValue().results().get(0).places()).hasSize(1);
-        assertThat(response.getValue().results().get(0).places().get(0).matchScore()).isEqualTo(90);
+        assertThat(response.getValue().results().get(0).places().get(0).matchScore()).isEqualTo(98);
         assertThat(response.getValue().results().get(0).places().get(0).reason()).isEqualTo("첫 번째 이유");
         verify(cache).delete(requestId);
     }

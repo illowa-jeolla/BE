@@ -9,6 +9,7 @@ import com.example.travel.domain.job.config.TourJobApiProperties;
 import com.example.travel.domain.tour.config.TourInfoProperties;
 import com.example.travel.domain.location.config.KakaoMapProperties;
 import com.example.travel.domain.ai.config.OpenAiProperties;
+import com.example.travel.domain.ai.config.AiMatchScoreProperties;
 import com.example.travel.domain.community.config.CommunityImageProperties;
 import com.example.travel.domain.community.config.LocalImageProperties;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,6 +37,7 @@ import java.util.List;
 @EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class, GoogleProperties.class,
         FrontendProperties.class,
         TourInfoProperties.class, KakaoMapProperties.class, OpenAiProperties.class,
+        AiMatchScoreProperties.class,
         TourJobApiProperties.class, JunnamPublicJobApiProperties.class,
         CommunityImageProperties.class, LocalImageProperties.class})
 public class SecurityConfig {
