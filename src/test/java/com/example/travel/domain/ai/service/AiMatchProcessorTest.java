@@ -103,4 +103,67 @@ class AiMatchProcessorTest {
         assertThat(response.getValue().results().get(0).places().get(0).reason()).isEqualTo("첫 번째 이유");
         verify(cache).delete(requestId);
     }
+
+    @Test
+    void replacesMissingRegionalPlacesWithPlacesFromNearbyRegion() {
+        AiMatchRequestCacheService cache = mock(AiMatchRequestCacheService.class);
+        OpenAiEmbeddingClient embeddingClient = mock(OpenAiEmbeddingClient.class);
+        AiCandidateSearchRepository searchRepository = mock(AiCandidateSearchRepository.class);
+        AiMatchPromptService promptService = mock(AiMatchPromptService.class);
+        OpenAiClient openAiClient = mock(OpenAiClient.class);
+        RegionRepository regionRepository = mock(RegionRepository.class);
+        AiMatchPersistenceService persistenceService = mock(AiMatchPersistenceService.class);
+        AiMatchScoreCalculator scoreCalculator = new AiMatchScoreCalculator(new AiMatchScoreProperties());
+        AiMatchProcessor processor = new AiMatchProcessor(cache, embeddingClient, searchRepository,
+                promptService, openAiClient, regionRepository, persistenceService, scoreCalculator);
+
+        UUID requestId = UUID.randomUUID();
+        AiMatchRequestContext context = new AiMatchRequestContext(requestId, 1L, 7L,
+                List.of("관광 기획"),
+                List.of(PriorityType.TOURISM, PriorityType.JOB,
+                        PriorityType.HOUSING, PriorityType.COMMUNITY),
+                "생활권 주변 관광지를 원함", AiRequestStatus.PROCESSING,
+                OffsetDateTime.now(), null);
+        Region region = mock(Region.class);
+        AiTourPlaceCandidate place = mock(AiTourPlaceCandidate.class);
+
+        when(cache.find(requestId)).thenReturn(Optional.of(context));
+        when(regionRepository.findActiveById(7L)).thenReturn(Optional.of(region));
+        when(region.getId()).thenReturn(7L);
+        when(region.getName()).thenReturn("여수");
+        when(embeddingClient.embed(anyList())).thenReturn(List.of(
+                new float[]{0.1f}, new float[]{0.2f}));
+        when(searchRepository.findJobs(eq(7L), any(float[].class), eq(20))).thenReturn(List.of());
+        when(searchRepository.findJobsAcrossRegions(any(float[].class), eq(20))).thenReturn(List.of());
+        when(searchRepository.findPlaces(eq(7L), any(float[].class), eq(20))).thenReturn(List.of());
+        when(searchRepository.findPlacesAcrossNearbyRegions(eq(7L), any(float[].class), eq(20)))
+                .thenReturn(List.of(new AiCandidateSearchRepository.PlaceMatch(place, 0.9)));
+        when(place.getId()).thenReturn(3L);
+        when(place.getExternalId()).thenReturn("1276");
+        when(place.getName()).thenReturn("순천만");
+        when(searchRepository.findPlaceStats(7L))
+                .thenReturn(new AiCandidateSearchRepository.PlaceStats(0, 0));
+        when(promptService.instructions()).thenReturn("instructions");
+        when(promptService.jobSearchText(context)).thenReturn("job search text");
+        when(promptService.tourismSearchText(context, region)).thenReturn("tourism search text");
+        when(promptService.input(eq(context), eq(region), anyList(), anyList())).thenReturn("input");
+        when(promptService.schema()).thenReturn(new ObjectMapper().createObjectNode());
+        when(openAiClient.generateStructured(anyString(), eq("input"), any())).thenReturn("""
+                {"summary":"인접 지역 관광지 추천", "housingScore":70, "communityScore":70,
+                 "jobs":[], "places":[{"id":3,"reason":"가까운 지역의 생활 관광지"}]}
+                """);
+
+        processor.process(requestId);
+
+        ArgumentCaptor<AiMatchResultResponse> response = ArgumentCaptor.forClass(AiMatchResultResponse.class);
+        verify(persistenceService).save(eq(requestId), eq(1L), response.capture());
+        assertThat(response.getValue().status()).isEqualTo(AiRequestStatus.REPLACED);
+        assertThat(response.getValue().results().get(0).tourismStatus().status())
+                .isEqualTo(AiMatchResultResponse.SectionState.REPLACED);
+        assertThat(response.getValue().results().get(0).places()).hasSize(1);
+        assertThat(response.getValue().results().get(0).places().get(0).name()).isEqualTo("순천만");
+        assertThat(response.getValue().results().get(0).scores().tourism()).isPositive();
+        verify(searchRepository).findPlacesAcrossNearbyRegions(eq(7L), any(float[].class), eq(20));
+        verify(cache).delete(requestId);
+    }
 }

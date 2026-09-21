@@ -68,6 +68,11 @@ public class AiMatchProcessor {
             }
             List<PlaceMatch> places = searchRepository.findPlaces(region.getId(), tourismQuery, 20).stream()
                     .filter(value -> scoreCalculator.isEligible(value.similarity())).toList();
+            boolean placesReplaced = places.isEmpty();
+            if (placesReplaced) {
+                places = searchRepository.findPlacesAcrossNearbyRegions(region.getId(), tourismQuery, 20).stream()
+                        .filter(value -> scoreCalculator.isEligible(value.similarity())).toList();
+            }
             PlaceStats placeStats = searchRepository.findPlaceStats(region.getId());
             String instructions = promptService.instructions()
                     + " If jobCandidates or placeCandidates is empty, return an empty corresponding array.";
@@ -75,7 +80,7 @@ public class AiMatchProcessor {
                     promptService.input(context, region, jobs, places), promptService.schema());
             AiSelection selection = MAPPER.readValue(raw, AiSelection.class);
             AiMatchResultResponse response = response(context, region, jobs, places, placeStats,
-                    selection, jobsReplaced);
+                    selection, jobsReplaced, placesReplaced);
             persistenceService.save(requestId, context.userId(), response);
             cacheService.delete(requestId);
         } catch (Exception exception) {
@@ -88,7 +93,7 @@ public class AiMatchProcessor {
     private AiMatchResultResponse response(AiMatchRequestContext context, Region region,
                                            List<JobMatch> jobs, List<PlaceMatch> places,
                                            PlaceStats placeStats, AiSelection selection,
-                                           boolean jobsReplaced) {
+                                           boolean jobsReplaced, boolean placesReplaced) {
         Map<Long, JobMatch> jobMap = mapJobs(jobs); Map<Long, PlaceMatch> placeMap = mapPlaces(places);
         Set<Long> selectedJobIds = new HashSet<>();
         List<AiMatchResultResponse.Job> selectedJobs = selection.jobs().stream()
@@ -134,11 +139,14 @@ public class AiMatchProcessor {
                 : success("추천 일자리를 찾았습니다.");
         var tourismStatus = selectedPlaces.isEmpty()
                 ? failed("해당 지역에 추천 가능한 관광지가 없습니다.")
+                : placesReplaced
+                ? replaced("선택한 지역에 추천 가능한 관광지가 없어 가까운 지역의 관광지로 대체했습니다.")
                 : success("추천 관광지를 찾았습니다.");
         var result = new AiMatchResultResponse.Result(1,
                 new AiMatchResultResponse.Region(region.getId(), region.getName()), scores,
                 selection.summary(), regionStatus, jobStatus, tourismStatus, selectedJobs, selectedPlaces);
-        AiRequestStatus status = jobsReplaced && !selectedJobs.isEmpty()
+        AiRequestStatus status = (jobsReplaced && !selectedJobs.isEmpty())
+                || (placesReplaced && !selectedPlaces.isEmpty())
                 ? AiRequestStatus.REPLACED : AiRequestStatus.COMPLETED;
         return new AiMatchResultResponse(context.requestId(), status, List.of(result));
     }
