@@ -59,6 +59,29 @@ public class AiCandidateSearchRepository {
                 .map(score -> new PlaceMatch(values.get(score.id()), similarity(score.distance()))).toList();
     }
 
+    public List<PlaceMatch> findPlacesAcrossNearbyRegions(Long preferredRegionId,
+                                                          float[] embedding, int limit) {
+        String sql = "select c.id, c.embedding <=> cast(? as vector) as distance "
+                + "from ai_tour_place_candidates c "
+                + "join regions r on r.id = c.region_id "
+                + "join regions preferred on preferred.id = ? "
+                + "where c.active = true and c.embedding is not null "
+                + "and c.region_id <> ? and r.is_active = true "
+                + "order by case when r.latitude is null or r.longitude is null "
+                + "or preferred.latitude is null or preferred.longitude is null then 1 else 0 end, "
+                + "power(r.latitude - preferred.latitude, 2) "
+                + "+ power(r.longitude - preferred.longitude, 2), "
+                + "c.embedding <=> cast(? as vector) limit ?";
+        String vector = vectorLiteral(embedding);
+        List<ScoredId> scores = jdbcTemplate.query(sql,
+                (rs, row) -> new ScoredId(rs.getLong("id"), rs.getDouble("distance")),
+                vector, preferredRegionId, preferredRegionId, vector,
+                Math.min(Math.max(limit, 1), 100));
+        Map<Long, AiTourPlaceCandidate> values = byPlaceId(placeRepository.findAllById(ids(scores)));
+        return scores.stream().filter(score -> values.containsKey(score.id()))
+                .map(score -> new PlaceMatch(values.get(score.id()), similarity(score.distance()))).toList();
+    }
+
     public PlaceStats findPlaceStats(Long regionId) {
         String sql = "select count(*) as candidate_count, "
                 + "count(distinct nullif(category, '')) as category_count "
