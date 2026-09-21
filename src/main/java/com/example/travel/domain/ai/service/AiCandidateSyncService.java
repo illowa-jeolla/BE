@@ -15,6 +15,7 @@ import com.example.travel.domain.region.repository.RegionRepository;
 import com.example.travel.domain.tour.client.TourInfoClient;
 import com.example.travel.domain.tour.dto.TourPlaceItem;
 import com.example.travel.domain.tour.dto.TourPlaceMapResponse;
+import com.example.travel.domain.tour.exception.TourException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class AiCandidateSyncService {
     private static final Logger log = LoggerFactory.getLogger(AiCandidateSyncService.class);
     private static final int EMBEDDING_BATCH_SIZE = 100;
     private static final int TOUR_RADIUS_METERS = 20_000;
+    private static final int MAX_TOUR_DETAIL_FETCHES_PER_SYNC = 100;
     private static final long JOB_RETENTION_DAYS = 180;
     private static final List<String> CLOSED_JOB_TITLE_KEYWORDS = List.of(
             "채용마감", "모집마감", "접수마감", "채용완료", "공고취소",
@@ -64,9 +66,11 @@ public class AiCandidateSyncService {
         List<Region> activeRegions = regionRepository.findAllByActiveTrueOrderByNameAsc();
         Map<String, Region> regions = regionsByName(activeRegions);
         Set<String> observedExternalIds = new HashSet<>();
+        Set<String> detailAttempted = new HashSet<>();
         boolean collectionComplete = true;
         boolean receivedAnyItems = false;
         int added = 0;
+        int detailFetches = 0;
         for (Region region : activeRegions) {
             if (region.getLatitude() == null || region.getLongitude() == null) continue;
             int page = 1; int total;
@@ -90,7 +94,13 @@ public class AiCandidateSyncService {
                             item.contentId(), candidateRegion, item.title(), category(item), item.address(), null,
                             item.thumbnailUrl(), item.mapY(), item.mapX(), startedAt));
                     if (existing.isEmpty()) added++;
-                    candidate.refresh(candidateRegion, item.title(), category(item), item.address(), candidate.getDescription(),
+                    String description = candidate.getDescription();
+                    if (description == null && detailFetches < MAX_TOUR_DETAIL_FETCHES_PER_SYNC
+                            && detailAttempted.add(item.contentId())) {
+                        detailFetches++;
+                        description = tourDescription(item.contentId());
+                    }
+                    candidate.refresh(candidateRegion, item.title(), category(item), item.address(), description,
                             item.thumbnailUrl(), item.mapY(), item.mapX(), startedAt);
                     String text = placeText(candidate); String hash = sha256(text);
                     if (candidate.requiresEmbedding(hash, openAiProperties.embeddingModel())) {
@@ -112,8 +122,9 @@ public class AiCandidateSyncService {
         } else {
             log.warn("AI 관광지 후보 수집이 비어 있거나 완료되지 않아 기존 후보 비활성화를 건너뜁니다.");
         }
-        log.info("AI 관광지 후보 비교 결과: {}건 추가했습니다. {}건의 임베딩을 갱신했습니다. {}건 비활성화했습니다.",
-                added, Math.max(0, changed.size() - added), deactivated.size());
+        log.info("AI 관광지 후보 비교 결과: {}건 추가했습니다. {}건의 임베딩을 갱신했습니다. "
+                        + "{}건 상세 조회하고 {}건 비활성화했습니다.",
+                added, Math.max(0, changed.size() - added), detailFetches, deactivated.size());
     }
 
     public void syncJunnamJobs() {
@@ -341,7 +352,30 @@ public class AiCandidateSyncService {
                 + "\n직무: " + text(value.getJobDescription()) + "\n근무형태: " + text(value.getEmploymentType());
     }
     private String regionName(Region value) { return value == null ? "" : value.getName(); }
-    private String category(TourPlaceItem item) { return String.join("/", nonBlank(item.category1(), item.category2(), item.category3())); }
+    private String category(TourPlaceItem item) {
+        String codes = String.join("/", nonBlank(item.category1(), item.category2(), item.category3()));
+        String label = switch (text(item.category1())) {
+            case "A01" -> "자연 관광";
+            case "A02" -> "문화·역사 관광";
+            case "A03" -> "레포츠·체험";
+            case "A04" -> "쇼핑";
+            case "A05" -> "음식";
+            case "B02" -> "숙박";
+            case "C01" -> "추천 여행 코스";
+            default -> "관광지";
+        };
+        return codes.isBlank() ? label : label + " (" + codes + ")";
+    }
+
+    private String tourDescription(String contentId) {
+        try {
+            var detail = tourInfoClient.findPlaceDetail(contentId);
+            return detail == null ? null : text(detail.overview());
+        } catch (TourException exception) {
+            log.warn("관광지 {} 상세 설명을 불러오지 못해 기본 정보로 임베딩합니다.", contentId);
+            return null;
+        }
+    }
     private List<String> nonBlank(String... values) { return Arrays.stream(values).filter(value -> !blank(value)).toList(); }
     private String jobCodes(TourJobItem item) { return String.join("/", nonBlank(item.upperRecruitJobCode(), item.middleRecruitJobCode(), item.lowerRecruitJobCode())); }
     private String first(Map<String, String> values, String... keys) {

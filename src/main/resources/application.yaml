@@ -102,6 +102,12 @@ openai:
 ai-match:
   request-ttl: ${AI_MATCH_REQUEST_TTL:1h}
   daily-limit: ${AI_MATCH_DAILY_LIMIT:2}
+  score:
+    minimum-similarity: ${AI_MATCH_MINIMUM_SIMILARITY:0.15}
+    center: ${AI_MATCH_SCORE_CENTER:0.35}
+    scale: ${AI_MATCH_SCORE_SCALE:0.08}
+    floor: ${AI_MATCH_SCORE_FLOOR:55}
+    range: ${AI_MATCH_SCORE_RANGE:43}
   sync:
     tour-place-cron: ${AI_MATCH_TOUR_PLACE_CRON:0 0 2 * * *}
     junnam-job-cron: ${AI_MATCH_JUNNAM_JOB_CRON:0 30 2 * * *}

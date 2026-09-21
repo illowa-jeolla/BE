@@ -59,6 +59,15 @@ public class AiCandidateSearchRepository {
                 .map(score -> new PlaceMatch(values.get(score.id()), similarity(score.distance()))).toList();
     }
 
+    public PlaceStats findPlaceStats(Long regionId) {
+        String sql = "select count(*) as candidate_count, "
+                + "count(distinct nullif(category, '')) as category_count "
+                + "from ai_tour_place_candidates "
+                + "where active = true and embedding is not null and region_id = ?";
+        return jdbcTemplate.queryForObject(sql, (rs, row) -> new PlaceStats(
+                rs.getLong("candidate_count"), rs.getLong("category_count")), regionId);
+    }
+
     private List<ScoredId> query(String table, Long regionId, float[] embedding, int limit, String extraWhere) {
         String sql = "select id, embedding <=> cast(? as vector) as distance from " + table
                 + " where active = true and embedding is not null and region_id = ? " + extraWhere
@@ -90,4 +99,5 @@ public class AiCandidateSearchRepository {
     private record ScoredJobId(Long id, double distance, Long regionId, String regionName) {}
     public record JobMatch(AiJobCandidate candidate, double similarity, Long regionId, String regionName) {}
     public record PlaceMatch(AiTourPlaceCandidate candidate, double similarity) {}
+    public record PlaceStats(long candidateCount, long categoryDiversity) {}
 }
